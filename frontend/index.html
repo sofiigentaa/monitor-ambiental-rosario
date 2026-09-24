@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>birriaecolab · Monitor de contaminación hídrica de Rosario</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="app-header__brand">
+      <span class="app-header__logo">💧</span>
+      <div>
+        <h1>birriaecolab</h1>
+        <p>Monitor de contaminación hídrica de Rosario</p>
+      </div>
+    </div>
+    <p class="app-header__tagline">
+      Datos de monitoreo oficiales de la Municipalidad de Rosario, para que sepas
+      antes de meterte en el agua.
+    </p>
+  </header>
+
+  <main class="layout">
+
+    <section class="summary" id="summary">
+      <div class="summary-card summary-card--verde">
+        <span class="summary-card__count" id="count-verde">–</span>
+        <span class="summary-card__label">Apta / bajo riesgo</span>
+      </div>
+      <div class="summary-card summary-card--amarillo">
+        <span class="summary-card__count" id="count-amarillo">–</span>
+        <span class="summary-card__label">Evitar contacto directo</span>
+      </div>
+      <div class="summary-card summary-card--rojo">
+        <span class="summary-card__count" id="count-rojo">–</span>
+        <span class="summary-card__label">No usar / riesgo de intoxicación</span>
+      </div>
+      <div class="summary-card summary-card--gris">
+        <span class="summary-card__count" id="count-sin_datos">–</span>
+        <span class="summary-card__label">Sin datos suficientes</span>
+      </div>
+    </section>
+
+    <section class="content">
+      <div class="map-wrap">
+        <div id="map"></div>
+        <p class="map-caption">
+          Los colores muestran el nivel de alerta calculado a partir de la última medición
+          oficial disponible de cada punto. No es un monitoreo en tiempo real.
+        </p>
+      </div>
+
+      <aside class="panel">
+        <div class="panel__search">
+          <input
+            type="text"
+            id="filtro-barrio"
+            placeholder="Buscar por barrio (ej: Fisherton, Ludueña)..."
+          />
+        </div>
+        <div class="panel__list" id="lista-puntos">
+          <p class="panel__loading">Cargando puntos de monitoreo…</p>
+        </div>
+      </aside>
+    </section>
+
+    <section class="detalle" id="detalle" hidden>
+      <button class="detalle__cerrar" id="detalle-cerrar" aria-label="Cerrar">✕</button>
+      <div id="detalle-contenido"></div>
+    </section>
+
+    <section class="glosario">
+      <h2>¿Qué significan estos parámetros?</h2>
+      <div class="glosario__grid">
+        <div><strong>pH</strong><p>Acidez/alcalinidad del agua. Fuera de 6,5–9 afecta a la vida acuática.</p></div>
+        <div><strong>Oxígeno disuelto (OD)</strong><p>Cuánto oxígeno hay disponible. Muy bajo = agua "muerta", mala señal.</p></div>
+        <div><strong>DBO / DQO</strong><p>Miden materia orgánica y contaminación por desechos. Cuanto más alto, peor.</p></div>
+        <div><strong>Coliformes fecales</strong><p>Indican contaminación cloacal directa. Es el dato más ligado al riesgo de intoxicación por contacto.</p></div>
+        <div><strong>Turbidez</strong><p>Qué tan "sucia" o turbia se ve el agua, por sólidos en suspensión.</p></div>
+        <div><strong>Conductividad</strong><p>Sales y contaminantes disueltos. Cambios bruscos indican vertidos.</p></div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="app-footer">
+    <p>
+      Fuente de datos: Dirección de Fiscalización Ambiental, Municipalidad de Rosario
+      (convenio con FCEIA-UNR) ·
+      <a href="https://datos.rosario.gob.ar/territorio/ambiente/calidad-ambiental/agua" target="_blank" rel="noopener">
+        Rosario Datos - Calidad Ambiental / Agua
+      </a>
+    </p>
+    <p class="app-footer__disclaimer">
+      Proyecto no oficial, de código abierto. Los niveles de alerta son un cálculo propio
+      a partir de informes de monitoreo periódicos (no continuos). Ante dudas sobre un
+      cuerpo de agua específico, consultá siempre las fuentes oficiales.
+    </p>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

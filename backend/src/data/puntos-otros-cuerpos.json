@@ -1,0 +1,50 @@
+{
+  "nota": "Puntos de referencia geográfica para el arroyo Saladillo y el río Paraná. A diferencia del dataset del Ludueña, todavía no se incorporaron series de mediciones fisicoquímicas oficiales completas para estos cuerpos de agua: el backend los expone con estado 'sin_datos' hasta que se cargue el informe correspondiente (INA / Municipalidad / Plan de Saneamiento Cuenca Saladillo). No inventar valores acá.",
+  "puntos": [
+    {
+      "id": "saladillo-01",
+      "cuerpo_agua": "arroyo-saladillo",
+      "nombre": "Cascada del Saladillo",
+      "descripcion": "Tramo bajo del arroyo Saladillo, límite entre Rosario y Villa Gobernador Gálvez. Zona históricamente señalada con contaminación visible por efluentes industriales y pluviocloacales.",
+      "lat": -33.0123,
+      "lng": -60.6339,
+      "barrio_aprox": "Saladillo / límite sur",
+      "distrito": "Sur",
+      "estado_datos": "sin_datos_estructurados",
+      "referencia": "Estudio de calidad ambiental en la Cuenca del Arroyo Saladillo - INA (IFRH 2016 paper 91)"
+    },
+    {
+      "id": "saladillo-02",
+      "cuerpo_agua": "arroyo-saladillo",
+      "nombre": "Reserva Natural Arroyo Saladillo",
+      "descripcion": "Tramo del Saladillo dentro del área de la reserva, cerca de la desembocadura en el Paraná.",
+      "lat": -33.0271,
+      "lng": -60.6562,
+      "barrio_aprox": "Saladillo / límite sur",
+      "distrito": "Sur",
+      "estado_datos": "sin_datos_estructurados"
+    },
+    {
+      "id": "parana-01",
+      "cuerpo_agua": "rio-parana",
+      "nombre": "Costanera Rosario - Balneario La Florida",
+      "descripcion": "Punto de referencia en la costanera norte, zona de uso recreativo con contacto directo (balneario).",
+      "lat": -32.9010,
+      "lng": -60.6470,
+      "barrio_aprox": "La Florida",
+      "distrito": "Norte",
+      "estado_datos": "sin_datos_estructurados"
+    },
+    {
+      "id": "parana-02",
+      "cuerpo_agua": "rio-parana",
+      "nombre": "Costanera Rosario - Centro",
+      "descripcion": "Punto de referencia frente al centro de la ciudad.",
+      "lat": -32.9468,
+      "lng": -60.6255,
+      "barrio_aprox": "Centro",
+      "distrito": "Centro",
+      "estado_datos": "sin_datos_estructurados"
+    }
+  ]
+}
