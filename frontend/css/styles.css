@@ -634,6 +634,28 @@ body {
 
 .humo-focos-lista { font-size: 0.8rem; color: #666; margin-top: 14px; }
 
+.reporte-popup { font-size: 0.85rem; max-width: 220px; }
+.reporte-popup p { margin: 4px 0; }
+.reporte-popup__meta { font-size: 0.72rem; color: #888; }
+.reporte-popup__nota { font-size: 0.78rem; color: #1b8a5a; font-weight: 600; }
+
+.btn-confirmar-reporte {
+  background: var(--azul);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  width: 100%;
+}
+
+.btn-confirmar-reporte:hover { background: var(--azul-oscuro); }
+
+.historial-chart { margin-top: 16px; max-width: 560px; }
+.historial-vacio { font-size: 0.82rem; color: #888; background: var(--fondo); border-radius: 8px; padding: 10px 12px; }
+.historial-tendencias { font-size: 0.82rem; color: #555; margin-bottom: 8px; }
+
 @media (max-width: 860px) {
   .content { grid-template-columns: 1fr; }
   .summary { grid-template-columns: repeat(2, 1fr); }

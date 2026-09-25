@@ -181,11 +181,24 @@ function calcularICA(medicion) {
 }
 
 /**
+ * Devuelve la ultima medicion de un punto: la mas reciente de su historial
+ * (`historial_mediciones`, un array pensado para guardar varias mediciones
+ * en el tiempo y poder graficar tendencia), o `ultima_medicion` si el punto
+ * todavia usa el formato viejo (un solo objeto, sin historial).
+ */
+function ultimaMedicion(punto) {
+  if (Array.isArray(punto.historial_mediciones) && punto.historial_mediciones.length > 0) {
+    return punto.historial_mediciones[punto.historial_mediciones.length - 1];
+  }
+  return punto.ultima_medicion || null;
+}
+
+/**
  * Evalúa un punto de monitoreo completo y devuelve el enriquecido con
  * ica, uso_permitido, nivel_alerta y mensaje.
  */
 function evaluarPunto(punto) {
-  const medicion = punto.ultima_medicion || null;
+  const medicion = ultimaMedicion(punto);
 
   if (!medicion) {
     return {
@@ -211,4 +224,4 @@ function evaluarPunto(punto) {
   };
 }
 
-module.exports = { evaluarPunto, evaluarUso, nivelAlertaDesdeUso, calcularICA, mensajeAlerta };
+module.exports = { evaluarPunto, evaluarUso, nivelAlertaDesdeUso, calcularICA, mensajeAlerta, ultimaMedicion };

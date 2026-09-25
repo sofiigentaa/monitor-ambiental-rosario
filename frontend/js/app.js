@@ -21,6 +21,28 @@ const RECLAMO_DESAGUES_LABEL = "Desagües y zanjas (agua, cloacas)";
 const RECLAMO_GENERAL_URL = "https://www.rosario.gob.ar/inicio/consultas-y-reclamos";
 const RECLAMO_GENERAL_LABEL = "Ver todas las categorías de reclamos";
 
+// No hay login: un id de dispositivo generado y guardado en localStorage es
+// lo unico que identifica "quien" reporta o confirma, para el rate limit y
+// las confirmaciones del backend (ver backend/src/lib/reportes.js).
+let dispositivoIdSesion = null;
+
+function obtenerDispositivoId() {
+  const generar = () => "dev-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+  try {
+    let id = localStorage.getItem("dispositivo_id");
+    if (!id) {
+      id = generar();
+      localStorage.setItem("dispositivo_id", id);
+    }
+    return id;
+  } catch {
+    // localStorage puede fallar (modo privado, bloqueado): usamos un id de
+    // sesion, no persiste entre recargas pero no rompe la funcionalidad.
+    if (!dispositivoIdSesion) dispositivoIdSesion = generar();
+    return dispositivoIdSesion;
+  }
+}
+
 let mapa;
 let marcadores = [];
 let todosLosPuntos = [];
@@ -56,6 +78,15 @@ function pintarMarcadores(puntos) {
     .map(crearMarcador);
 }
 
+// Compatibilidad: los puntos ahora guardan un historial de mediciones
+// (`historial_mediciones`), pero puede haber puntos viejos con el formato
+// anterior de un solo objeto `ultima_medicion`.
+function ultimaMedicionDePunto(punto) {
+  const historial = punto.historial_mediciones;
+  if (Array.isArray(historial) && historial.length > 0) return historial[historial.length - 1];
+  return punto.ultima_medicion || null;
+}
+
 const ORDEN_SEVERIDAD = { rojo: 0, amarillo: 1, sin_datos: 2, verde: 3 };
 
 function ordenarPorSeveridad(puntos) {
@@ -73,19 +104,18 @@ function pintarLista(puntosSinOrdenar) {
   }
 
   cont.innerHTML = puntos
-    .map(
-      (p) => `
+    .map((p) => {
+      const m = ultimaMedicionDePunto(p);
+      return `
       <div class="punto-item" data-id="${p.id}">
         <span class="punto-item__dot dot--${p.nivel_alerta}"></span>
         <div>
           <p class="punto-item__nombre">${p.nombre}</p>
-          <p class="punto-item__meta">${p.barrio_aprox || ""}${
-        p.ultima_medicion ? " · " + p.ultima_medicion.fecha : ""
-      }</p>
+          <p class="punto-item__meta">${p.barrio_aprox || ""}${m ? " · " + m.fecha : ""}</p>
         </div>
       </div>
-    `
-    )
+    `;
+    })
     .join("");
 
   cont.querySelectorAll(".punto-item").forEach((el) => {
@@ -138,6 +168,7 @@ function extraerFuentesProbables(descripcion) {
 }
 
 function generarTextoReclamoPunto(punto) {
+  const m = ultimaMedicionDePunto(punto);
   return [
     `Reclamo ambiental - Monitor Ambiental Rosario`,
     `Fecha: ${new Date().toLocaleString("es-AR")}`,
@@ -145,7 +176,7 @@ function generarTextoReclamoPunto(punto) {
     `Ubicación (lat, lng): ${punto.lat}, ${punto.lng}`,
     `Barrio aprox.: ${punto.barrio_aprox || "-"}`,
     `Nivel de alerta actual: ${textoNivel(punto.nivel_alerta)}`,
-    punto.ultima_medicion ? `Última medición oficial: ${punto.ultima_medicion.fecha}` : null,
+    m ? `Última medición oficial: ${m.fecha}` : null,
     punto.mensaje_alerta ? `Detalle: ${punto.mensaje_alerta}` : null
   ]
     .filter(Boolean)
@@ -165,7 +196,8 @@ function copiarAlPortapapeles(texto, boton) {
 function mostrarDetalle(punto) {
   const seccion = document.getElementById("detalle");
   const cont = document.getElementById("detalle-contenido");
-  const m = punto.ultima_medicion;
+  const historial = punto.historial_mediciones || (punto.ultima_medicion ? [punto.ultima_medicion] : []);
+  const m = historial.length ? historial[historial.length - 1] : null;
 
   const params = m
     ? `
@@ -204,6 +236,10 @@ function mostrarDetalle(punto) {
     ${params}
     ${m && m.observacion_campo ? `<p><strong>Observación de campo:</strong> ${m.observacion_campo}</p>` : ""}
     ${fuentesHtml}
+    <div class="historial-chart">
+      <h3>Evolución histórica</h3>
+      <div id="historial-chart-container"></div>
+    </div>
     <div class="detalle-reclamo">
       <button type="button" id="btn-generar-reclamo">📋 Generar reclamo formal de este punto</button>
       <div id="reclamo-punto-resultado" hidden></div>
@@ -228,8 +264,100 @@ function mostrarDetalle(punto) {
       .addEventListener("click", (ev) => copiarAlPortapapeles(texto, ev.target));
   });
 
+  renderizarHistorial(historial);
+
   seccion.hidden = false;
   seccion.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+let chartHistorial = null;
+
+// Indicador simple de tendencia: compara los dos ultimos valores no nulos de
+// un campo. "Mejora"/"empeora" depende del campo (para OD y pH mas alto no
+// siempre es mejor, pero para DBO/turbidez/coliformes si baja es mejor).
+function calcularTendencia(historial, campo, bajarEsMejor) {
+  const valores = historial.map((m) => m[campo]).filter((v) => typeof v === "number");
+  if (valores.length < 2) return null;
+  const [anterior, actual] = valores.slice(-2);
+  if (actual === anterior) return "igual";
+  const subio = actual > anterior;
+  const mejora = bajarEsMejor ? !subio : subio;
+  return mejora ? "mejora" : "empeora";
+}
+
+const ICONO_TENDENCIA = { mejora: "🟢 mejorando", empeora: "🔴 empeorando", igual: "⚪ sin cambios" };
+
+function renderizarHistorial(historial) {
+  const cont = document.getElementById("historial-chart-container");
+  if (!cont) return;
+
+  if (historial.length === 0) {
+    cont.innerHTML = "";
+    return;
+  }
+
+  if (historial.length < 2) {
+    cont.innerHTML = `
+      <p class="historial-vacio">
+        Todavía hay ${historial.length} medición cargada para este punto. El gráfico de
+        tendencia se habilita automáticamente cuando haya al menos dos mediciones en el historial
+        (ver <code>backend/scripts/actualizar-datos.js</code>).
+      </p>
+    `;
+    return;
+  }
+
+  // El pH no tiene una direccion "mejor" clara (depende de si esta lejos de
+  // neutro para cualquier lado), asi que solo se muestra tendencia para DBO
+  // y oxigeno disuelto, que si tienen un sentido claro de mejora/empeora.
+  const tendencias = [
+    calcularTendencia(historial, "dbo_mgl", true),
+    calcularTendencia(historial, "oxigeno_disuelto_mgl", false)
+  ];
+
+  const tendenciasHtml = `
+    <p class="historial-tendencias">
+      ${tendencias[0] ? `DBO: ${ICONO_TENDENCIA[tendencias[0]]}` : ""}
+      ${tendencias[1] ? ` · Oxígeno disuelto: ${ICONO_TENDENCIA[tendencias[1]]}` : ""}
+    </p>
+  `;
+
+  cont.innerHTML = `${tendenciasHtml}<canvas id="historial-canvas" height="220"></canvas>`;
+
+  if (chartHistorial) {
+    chartHistorial.destroy();
+    chartHistorial = null;
+  }
+  if (typeof Chart === "undefined") return; // CDN pudo no cargar (sin internet, etc.)
+
+  const ctx = document.getElementById("historial-canvas").getContext("2d");
+  chartHistorial = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: historial.map((m) => m.fecha),
+      datasets: [
+        { label: "pH", data: historial.map((m) => m.ph ?? null), borderColor: "#0e7490", tension: 0.2 },
+        {
+          label: "DBO (mg/l)",
+          data: historial.map((m) => m.dbo_mgl ?? null),
+          borderColor: "#c0392b",
+          tension: 0.2
+        },
+        {
+          label: "Oxígeno disuelto (mg/l)",
+          data: historial.map((m) => m.oxigeno_disuelto_mgl ?? null),
+          borderColor: "#1b8a5a",
+          tension: 0.2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
 }
 
 function pintarResumen(resumen, puntos) {
@@ -370,30 +498,95 @@ async function cargarReportes() {
   }
 }
 
+// Peso de un reporte para mostrar en pantalla y para el calculo de riesgo
+// respiratorio (misma logica que backend/src/lib/reportes.js pesoReporte:
+// aislado pesa la mitad que uno confirmado por al menos un vecino).
+function pesoReporteFrontend(reporte) {
+  const confirmaciones = reporte.confirmaciones ? reporte.confirmaciones.length : 0;
+  if (confirmaciones === 0) return 0.5;
+  return Math.min(2, 1 + confirmaciones * 0.25);
+}
+
+function popupReporte(r) {
+  const confirmaciones = r.confirmaciones || [];
+  const miId = obtenerDispositivoId();
+  const esMio = r.dispositivo_id === miId;
+  const yaConfirme = confirmaciones.includes(miId);
+
+  const descripcion =
+    r.tipo === "bruma"
+      ? `📷 Bruma estimada (foto, no oficial): <strong>${r.bruma_estimada}/100</strong>`
+      : `🤧 Síntomas: <strong>${(r.sintomas || []).join(", ") || "sin detalle"}</strong>`;
+
+  let accion;
+  if (esMio) {
+    accion = `<p class="reporte-popup__nota">Es tu reporte.</p>`;
+  } else if (yaConfirme) {
+    accion = `<p class="reporte-popup__nota">Ya lo confirmaste ✓</p>`;
+  } else {
+    accion = `<button type="button" class="btn-confirmar-reporte" data-id="${r.id}">👍 Yo también lo noto</button>`;
+  }
+
+  return `
+    <div class="reporte-popup">
+      <p>${descripcion}</p>
+      <p class="reporte-popup__meta">
+        ${new Date(r.fecha).toLocaleString("es-AR")} ·
+        ${confirmaciones.length} confirmación(es)
+      </p>
+      ${accion}
+    </div>
+  `;
+}
+
+async function confirmarReporteCiudadano(id) {
+  try {
+    const res = await fetch(`${API_BASE}/reportes/${id}/confirmar`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dispositivo_id: obtenerDispositivoId() })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "No se pudo confirmar el reporte.");
+      return;
+    }
+    await cargarReportes();
+  } catch (err) {
+    console.error(err);
+    alert("No se pudo confirmar el reporte. Intentá de nuevo.");
+  }
+}
+
 function pintarReportesEnMapa(reportes) {
   reportesMarcadores.forEach((m) => mapa.removeLayer(m));
   reportesMarcadores = reportes.map((r) => {
-    if (r.tipo === "bruma") {
-      const intensidad = (r.bruma_estimada || 0) / 100;
-      return L.circleMarker([r.lat, r.lng], {
-        radius: 8 + intensidad * 6,
-        color: "#8b5e34",
-        weight: 1,
-        fillColor: "#c9a26a",
-        fillOpacity: 0.3 + intensidad * 0.4
-      })
-        .addTo(mapa)
-        .bindTooltip(`Bruma estimada (foto, no oficial): ${r.bruma_estimada}/100`);
-    }
-    return L.circleMarker([r.lat, r.lng], {
-      radius: 7,
-      color: "#e67e22",
-      weight: 1,
-      fillColor: "#f39c12",
-      fillOpacity: 0.6
-    })
-      .addTo(mapa)
-      .bindTooltip(`Síntomas reportados: ${(r.sintomas || []).join(", ") || "sin detalle"}`);
+    const marker =
+      r.tipo === "bruma"
+        ? (() => {
+            const intensidad = (r.bruma_estimada || 0) / 100;
+            return L.circleMarker([r.lat, r.lng], {
+              radius: 8 + intensidad * 6,
+              color: "#8b5e34",
+              weight: 1,
+              fillColor: "#c9a26a",
+              fillOpacity: 0.3 + intensidad * 0.4
+            });
+          })()
+        : L.circleMarker([r.lat, r.lng], {
+            radius: 7,
+            color: "#e67e22",
+            weight: 1,
+            fillColor: "#f39c12",
+            fillOpacity: 0.6
+          });
+
+    marker.addTo(mapa).bindPopup(popupReporte(r));
+    marker.on("popupopen", () => {
+      const boton = document.querySelector(`.btn-confirmar-reporte[data-id="${r.id}"]`);
+      if (boton) boton.addEventListener("click", () => confirmarReporteCiudadano(r.id));
+    });
+    return marker;
   });
 }
 
@@ -402,13 +595,16 @@ async function enviarReporte(payload) {
     const res = await fetch(`${API_BASE}/reportes`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ ...payload, dispositivo_id: obtenerDispositivoId() })
     });
-    if (!res.ok) throw new Error("No se pudo enviar el reporte");
-    const reporte = await res.json();
-    mostrarConfirmacionReporte(reporte);
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "No se pudo enviar el reporte.");
+      return null;
+    }
+    mostrarConfirmacionReporte(data);
     await cargarReportes();
-    return reporte;
+    return data;
   } catch (err) {
     console.error(err);
     alert("No se pudo enviar el reporte. Intentá de nuevo.");
@@ -652,6 +848,10 @@ function calcularYMostrarRiesgo(lat, lng) {
     ? brumas.reduce((acc, r) => acc + (r.bruma_estimada || 0), 0) / brumas.length
     : 0;
 
+  // Un reporte de sintoma aislado (sin confirmar por otro vecino) pesa menos
+  // que uno confirmado, misma logica que backend/src/lib/reportes.js.
+  const pesoSintomasTotal = sintomas.reduce((acc, r) => acc + pesoReporteFrontend(r), 0);
+
   // Componente de humo por quemas en las islas (pronostico, no reporte
   // ciudadano): usa la hora "actual" del pronostico de /api/humo si esta
   // disponible. Se suma con menos peso que los reportes porque es un dato
@@ -660,7 +860,7 @@ function calcularYMostrarRiesgo(lat, lng) {
     datosHumo && datosHumo.estado === "ok" && datosHumo.pronostico.length ? datosHumo.pronostico[0] : null;
   const puntajeHumo = horaHumoActual ? horaHumoActual.score : 0;
 
-  const puntajeReportes = sintomas.length * 15 + brumaProm * 0.5;
+  const puntajeReportes = pesoSintomasTotal * 15 + brumaProm * 0.5;
   const puntajeFinal = Math.min(100, Math.round((puntajeReportes + puntajeHumo * 0.6) * peso));
 
   let nivel, mensaje;
@@ -682,9 +882,10 @@ function calcularYMostrarRiesgo(lat, lng) {
   document.getElementById("riesgo-resultado").innerHTML = `
     <p class="riesgo-nivel riesgo-nivel--${nivel}">${mensaje}</p>
     <p class="riesgo-detalle">
-      Basado en ${sintomas.length} reporte(s) de síntomas y ${brumas.length} reporte(s) de bruma
-      en un radio de ${radioKm * 1000}m en las últimas 24hs${detalleHumo}. Esto es un indicador
-      comunitario, no una medición oficial de calidad de aire ni un diagnóstico médico.
+      Basado en ${sintomas.length} reporte(s) de síntomas (ponderados según cuántos vecinos los
+      confirmaron) y ${brumas.length} reporte(s) de bruma en un radio de ${radioKm * 1000}m en las
+      últimas 24hs${detalleHumo}. Esto es un indicador comunitario, no una medición oficial de
+      calidad de aire ni un diagnóstico médico.
     </p>
   `;
 }

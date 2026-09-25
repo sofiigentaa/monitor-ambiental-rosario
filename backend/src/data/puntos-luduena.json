@@ -12,24 +12,26 @@
       "zona": "Zona 2",
       "nombre": "Ing. Miglierini y Arroyo Ludueña",
       "descripcion": "Centro del cauce desde el puente sobre Ing. Miglierini. Recibe la descarga del Emisario 4.",
-      "lat": -32.9110,
+      "lat": -32.911,
       "lng": -60.6975,
       "barrio_aprox": "Ludueña",
       "distrito": "Noroeste",
-      "ultima_medicion": {
-        "fecha": "2024-03-21",
-        "ph": 6.9,
-        "temperatura_c": 22.0,
-        "ssee_mgl": 20.0,
-        "dbo_mgl": 25.0,
-        "dqo_mgl": 95.0,
-        "turbidez_ntu": 41.0,
-        "conductividad_uscm": 1200.0,
-        "oxigeno_disuelto_mgl": null,
-        "coliformes_totales_100ml": "1.1e5",
-        "coliformes_fecales_100ml": "5e3",
-        "observacion_campo": "Coloración marrón, olor a cloaca."
-      }
+      "historial_mediciones": [
+        {
+          "fecha": "2024-03-21",
+          "ph": 6.9,
+          "temperatura_c": 22,
+          "ssee_mgl": 20,
+          "dbo_mgl": 25,
+          "dqo_mgl": 95,
+          "turbidez_ntu": 41,
+          "conductividad_uscm": 1200,
+          "oxigeno_disuelto_mgl": null,
+          "coliformes_totales_100ml": "1.1e5",
+          "coliformes_fecales_100ml": "5e3",
+          "observacion_campo": "Coloración marrón, olor a cloaca."
+        }
+      ]
     },
     {
       "id": "luduena-02",
@@ -39,23 +41,25 @@
       "nombre": "Alvarez Condarco y Arroyo Ludueña",
       "descripcion": "Centro del cauce desde el puente sobre Alvarez Condarco 946 bis. Suele verse película oleosa y blanquecina.",
       "lat": -32.9105,
-      "lng": -60.6990,
+      "lng": -60.699,
       "barrio_aprox": "Ludueña",
       "distrito": "Noroeste",
-      "ultima_medicion": {
-        "fecha": "2024-03-21",
-        "ph": 7.0,
-        "temperatura_c": 21.4,
-        "ssee_mgl": 14.0,
-        "dbo_mgl": 25.0,
-        "dqo_mgl": 84.0,
-        "turbidez_ntu": 43.0,
-        "conductividad_uscm": 1400.0,
-        "oxigeno_disuelto_mgl": null,
-        "coliformes_totales_100ml": null,
-        "coliformes_fecales_100ml": null,
-        "observacion_campo": "Olor a cloaca, espuma, coloración marrón claro."
-      }
+      "historial_mediciones": [
+        {
+          "fecha": "2024-03-21",
+          "ph": 7,
+          "temperatura_c": 21.4,
+          "ssee_mgl": 14,
+          "dbo_mgl": 25,
+          "dqo_mgl": 84,
+          "turbidez_ntu": 43,
+          "conductividad_uscm": 1400,
+          "oxigeno_disuelto_mgl": null,
+          "coliformes_totales_100ml": null,
+          "coliformes_fecales_100ml": null,
+          "observacion_campo": "Olor a cloaca, espuma, coloración marrón claro."
+        }
+      ]
     },
     {
       "id": "luduena-03",
@@ -65,20 +69,22 @@
       "nombre": "Nansen y Arroyo Ludueña",
       "descripcion": "Centro del cauce desde el puente sobre Nansen 164, cerca de la desembocadura en el Paraná.",
       "lat": -32.9018,
-      "lng": -60.6690,
+      "lng": -60.669,
       "barrio_aprox": "La Florida",
       "distrito": "Norte",
-      "ultima_medicion": {
-        "fecha": "2023-10-12",
-        "ph": 7.3,
-        "temperatura_c": 19.6,
-        "dbo_mgl": 2.0,
-        "dqo_mgl": 14.0,
-        "turbidez_ntu": 16.0,
-        "conductividad_uscm": 810.0,
-        "oxigeno_disuelto_mgl": null,
-        "observacion_campo": "Gran cantidad de peces y camalotes, agua con coloración muy leve."
-      }
+      "historial_mediciones": [
+        {
+          "fecha": "2023-10-12",
+          "ph": 7.3,
+          "temperatura_c": 19.6,
+          "dbo_mgl": 2,
+          "dqo_mgl": 14,
+          "turbidez_ntu": 16,
+          "conductividad_uscm": 810,
+          "oxigeno_disuelto_mgl": null,
+          "observacion_campo": "Gran cantidad de peces y camalotes, agua con coloración muy leve."
+        }
+      ]
     },
     {
       "id": "luduena-04",
@@ -87,24 +93,26 @@
       "zona": "Zona 2/3",
       "nombre": "Puente Negro y Arroyo Ludueña",
       "descripcion": "Puente Negro 6135. A pocos metros comienza el entubamiento del arroyo. Confluyen descargas de pluviodomiciliarios 24 y 11.",
-      "lat": -32.9060,
+      "lat": -32.906,
       "lng": -60.7058,
       "barrio_aprox": "Alberdi / Antártida Argentina",
       "distrito": "Noroeste",
-      "ultima_medicion": {
-        "fecha": "2023-08-14",
-        "ph": 8.1,
-        "temperatura_c": 17.1,
-        "ssee_mgl": 3.0,
-        "dbo_mgl": 33.0,
-        "dqo_mgl": 85.0,
-        "turbidez_ntu": 19.0,
-        "conductividad_uscm": 3500.0,
-        "oxigeno_disuelto_mgl": 11.3,
-        "coliformes_totales_100ml": "11e5",
-        "coliformes_fecales_100ml": "4.6e5",
-        "observacion_campo": "Residuos en los márgenes, coloración presente, sin olor."
-      }
+      "historial_mediciones": [
+        {
+          "fecha": "2023-08-14",
+          "ph": 8.1,
+          "temperatura_c": 17.1,
+          "ssee_mgl": 3,
+          "dbo_mgl": 33,
+          "dqo_mgl": 85,
+          "turbidez_ntu": 19,
+          "conductividad_uscm": 3500,
+          "oxigeno_disuelto_mgl": 11.3,
+          "coliformes_totales_100ml": "11e5",
+          "coliformes_fecales_100ml": "4.6e5",
+          "observacion_campo": "Residuos en los márgenes, coloración presente, sin olor."
+        }
+      ]
     },
     {
       "id": "luduena-05",
@@ -113,21 +121,23 @@
       "zona": "Zona 1",
       "nombre": "Ribera del arroyo entre Jacobacci y Miglierini",
       "descripcion": "Margen derecha, a la altura de la desembocadura de la estación de bombeo de Aguas Santafesinas, previo al Punto 1. Ingreso del arroyo a la ciudad.",
-      "lat": -32.9130,
-      "lng": -60.6950,
+      "lat": -32.913,
+      "lng": -60.695,
       "barrio_aprox": "Ludueña",
       "distrito": "Noroeste",
-      "ultima_medicion": {
-        "fecha": "2023-03-16",
-        "ph": 7.7,
-        "temperatura_c": 23.8,
-        "dbo_mgl": 95.0,
-        "dqo_mgl": 930.0,
-        "turbidez_ntu": 27.0,
-        "conductividad_uscm": 23000.0,
-        "oxigeno_disuelto_mgl": 0.0,
-        "observacion_campo": "Se percibió olor compatible con cloacal, poco caudal."
-      }
+      "historial_mediciones": [
+        {
+          "fecha": "2023-03-16",
+          "ph": 7.7,
+          "temperatura_c": 23.8,
+          "dbo_mgl": 95,
+          "dqo_mgl": 930,
+          "turbidez_ntu": 27,
+          "conductividad_uscm": 23000,
+          "oxigeno_disuelto_mgl": 0,
+          "observacion_campo": "Se percibió olor compatible con cloacal, poco caudal."
+        }
+      ]
     },
     {
       "id": "luduena-06",
@@ -136,21 +146,23 @@
       "zona": "Zona 2",
       "nombre": "José María Rosa y Arroyo Ludueña",
       "descripcion": "Puente sobre José María Rosa 2003 bis. Metros arriba el arroyo recibe el aporte del canal Salvat e Ibarlucea (foco de descargas pluviocloacales ilegales).",
-      "lat": -32.9120,
-      "lng": -60.7000,
+      "lat": -32.912,
+      "lng": -60.7,
       "barrio_aprox": "Ludueña",
       "distrito": "Noroeste",
-      "ultima_medicion": {
-        "fecha": "2024-02-15",
-        "ph": 7.6,
-        "temperatura_c": 23.1,
-        "dbo_mgl": 8.0,
-        "dqo_mgl": 59.0,
-        "turbidez_ntu": 8.0,
-        "conductividad_uscm": 3400.0,
-        "oxigeno_disuelto_mgl": 6.3,
-        "observacion_campo": "Algunos residuos sobre margen derecha."
-      }
+      "historial_mediciones": [
+        {
+          "fecha": "2024-02-15",
+          "ph": 7.6,
+          "temperatura_c": 23.1,
+          "dbo_mgl": 8,
+          "dqo_mgl": 59,
+          "turbidez_ntu": 8,
+          "conductividad_uscm": 3400,
+          "oxigeno_disuelto_mgl": 6.3,
+          "observacion_campo": "Algunos residuos sobre margen derecha."
+        }
+      ]
     },
     {
       "id": "luduena-07",
@@ -160,23 +172,25 @@
       "nombre": "De Los Trabajadores y Allende",
       "descripcion": "Av. de los Trabajadores 1482. Aquí finaliza el entubamiento del arroyo. Presencia recurrente de residuos, hedor y material graso.",
       "lat": -32.9126,
-      "lng": -60.6840,
+      "lng": -60.684,
       "barrio_aprox": "Villa Gobernador Gálvez (límite)",
       "distrito": "Sur",
-      "ultima_medicion": {
-        "fecha": "2024-03-21",
-        "ph": 7.0,
-        "temperatura_c": 22.7,
-        "ssee_mgl": 17.0,
-        "dbo_mgl": 13.0,
-        "dqo_mgl": 64.0,
-        "turbidez_ntu": 42.0,
-        "conductividad_uscm": 750.0,
-        "oxigeno_disuelto_mgl": 1.6,
-        "coliformes_totales_100ml": "11e5",
-        "coliformes_fecales_100ml": "75e3",
-        "observacion_campo": "Olor cloacal, espuma, residuos en el entorno, coloración marrón claro."
-      }
+      "historial_mediciones": [
+        {
+          "fecha": "2024-03-21",
+          "ph": 7,
+          "temperatura_c": 22.7,
+          "ssee_mgl": 17,
+          "dbo_mgl": 13,
+          "dqo_mgl": 64,
+          "turbidez_ntu": 42,
+          "conductividad_uscm": 750,
+          "oxigeno_disuelto_mgl": 1.6,
+          "coliformes_totales_100ml": "11e5",
+          "coliformes_fecales_100ml": "75e3",
+          "observacion_campo": "Olor cloacal, espuma, residuos en el entorno, coloración marrón claro."
+        }
+      ]
     },
     {
       "id": "luduena-08",
@@ -185,21 +199,23 @@
       "zona": "Zona 2/3",
       "nombre": "Azcuénaga y Arroyo Ludueña",
       "descripcion": "Azcuénaga 9194. Recibe la descarga de un conducto pluvial abierto que colecta, entre otros, efluentes de Fisherton Plaza Mall y (sin certeza) del Aeropuerto Internacional Rosario.",
-      "lat": -32.9430,
-      "lng": -60.7230,
+      "lat": -32.943,
+      "lng": -60.723,
       "barrio_aprox": "Fisherton",
       "distrito": "Oeste",
-      "ultima_medicion": {
-        "fecha": "2023-11-09",
-        "ph": 8.2,
-        "temperatura_c": 24.6,
-        "dbo_mgl": 18.0,
-        "dqo_mgl": 17.0,
-        "turbidez_ntu": 15.0,
-        "conductividad_uscm": 8300.0,
-        "oxigeno_disuelto_mgl": 8.5,
-        "observacion_campo": "Abundante vertido de canal lateral proveniente de Funes."
-      }
+      "historial_mediciones": [
+        {
+          "fecha": "2023-11-09",
+          "ph": 8.2,
+          "temperatura_c": 24.6,
+          "dbo_mgl": 18,
+          "dqo_mgl": 17,
+          "turbidez_ntu": 15,
+          "conductividad_uscm": 8300,
+          "oxigeno_disuelto_mgl": 8.5,
+          "observacion_campo": "Abundante vertido de canal lateral proveniente de Funes."
+        }
+      ]
     },
     {
       "id": "luduena-09",
@@ -212,17 +228,19 @@
       "lng": -60.7269,
       "barrio_aprox": "Fisherton",
       "distrito": "Oeste",
-      "ultima_medicion": {
-        "fecha": "2023-12-07",
-        "ph": 8.3,
-        "temperatura_c": 22.8,
-        "dbo_mgl": 5.0,
-        "dqo_mgl": 7.0,
-        "turbidez_ntu": 8.0,
-        "conductividad_uscm": 6000.0,
-        "oxigeno_disuelto_mgl": 11.0,
-        "observacion_campo": "Sin olores, plantas acuáticas, agua transparente."
-      }
+      "historial_mediciones": [
+        {
+          "fecha": "2023-12-07",
+          "ph": 8.3,
+          "temperatura_c": 22.8,
+          "dbo_mgl": 5,
+          "dqo_mgl": 7,
+          "turbidez_ntu": 8,
+          "conductividad_uscm": 6000,
+          "oxigeno_disuelto_mgl": 11,
+          "observacion_campo": "Sin olores, plantas acuáticas, agua transparente."
+        }
+      ]
     },
     {
       "id": "luduena-10",
@@ -235,17 +253,19 @@
       "lng": -60.7245,
       "barrio_aprox": "Fisherton",
       "distrito": "Oeste",
-      "ultima_medicion": {
-        "fecha": "2023-07-03",
-        "ph": 7.7,
-        "temperatura_c": 16.2,
-        "dbo_mgl": 68.0,
-        "dqo_mgl": 140.0,
-        "turbidez_ntu": 35.0,
-        "conductividad_uscm": 9100.0,
-        "oxigeno_disuelto_mgl": 3.7,
-        "observacion_campo": "Muestra tomada para comparar con Punto 8 del mismo día."
-      }
+      "historial_mediciones": [
+        {
+          "fecha": "2023-07-03",
+          "ph": 7.7,
+          "temperatura_c": 16.2,
+          "dbo_mgl": 68,
+          "dqo_mgl": 140,
+          "turbidez_ntu": 35,
+          "conductividad_uscm": 9100,
+          "oxigeno_disuelto_mgl": 3.7,
+          "observacion_campo": "Muestra tomada para comparar con Punto 8 del mismo día."
+        }
+      ]
     },
     {
       "id": "luduena-11",
@@ -254,21 +274,23 @@
       "zona": "Zona 1",
       "nombre": "Autopista Che Guevara y Arroyo Ludueña",
       "descripcion": "Orilla derecha, debajo del puente de la autopista Rosario-Córdoba (Che Guevara). Punto de ingreso del arroyo a la ciudad.",
-      "lat": -32.9200,
-      "lng": -60.7440,
+      "lat": -32.92,
+      "lng": -60.744,
       "barrio_aprox": "Fisherton / límite oeste",
       "distrito": "Oeste",
-      "ultima_medicion": {
-        "fecha": "2023-11-09",
-        "ph": 8.9,
-        "temperatura_c": 22.4,
-        "dbo_mgl": 20.0,
-        "dqo_mgl": 120.0,
-        "turbidez_ntu": 15.0,
-        "conductividad_uscm": 7000.0,
-        "oxigeno_disuelto_mgl": 9.65,
-        "observacion_campo": "Cristales blanquecinos en el borde, presencia de algas."
-      }
+      "historial_mediciones": [
+        {
+          "fecha": "2023-11-09",
+          "ph": 8.9,
+          "temperatura_c": 22.4,
+          "dbo_mgl": 20,
+          "dqo_mgl": 120,
+          "turbidez_ntu": 15,
+          "conductividad_uscm": 7000,
+          "oxigeno_disuelto_mgl": 9.65,
+          "observacion_campo": "Cristales blanquecinos en el borde, presencia de algas."
+        }
+      ]
     },
     {
       "id": "luduena-12",
@@ -281,20 +303,22 @@
       "lng": -60.7358,
       "barrio_aprox": "Las Flores",
       "distrito": "Noroeste",
-      "ultima_medicion": {
-        "fecha": "2023-08-14",
-        "ph": 8.3,
-        "temperatura_c": 14.0,
-        "ssee_mgl": 7.0,
-        "dbo_mgl": 5.0,
-        "dqo_mgl": 48.0,
-        "turbidez_ntu": 3.0,
-        "conductividad_uscm": 4900.0,
-        "oxigeno_disuelto_mgl": 14.5,
-        "coliformes_totales_100ml": "1.1e5",
-        "coliformes_fecales_100ml": "2.4e4",
-        "observacion_campo": "Muestra limpia y sin olor. Cerca, descarga del emisario 24 con capa de grasa y residuos."
-      }
+      "historial_mediciones": [
+        {
+          "fecha": "2023-08-14",
+          "ph": 8.3,
+          "temperatura_c": 14,
+          "ssee_mgl": 7,
+          "dbo_mgl": 5,
+          "dqo_mgl": 48,
+          "turbidez_ntu": 3,
+          "conductividad_uscm": 4900,
+          "oxigeno_disuelto_mgl": 14.5,
+          "coliformes_totales_100ml": "1.1e5",
+          "coliformes_fecales_100ml": "2.4e4",
+          "observacion_campo": "Muestra limpia y sin olor. Cerca, descarga del emisario 24 con capa de grasa y residuos."
+        }
+      ]
     }
   ]
 }

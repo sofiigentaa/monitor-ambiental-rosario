@@ -1,21 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const luduenaData = require("../data/puntos-luduena.json");
-const otrosData = require("../data/puntos-otros-cuerpos.json");
-const { evaluarPunto } = require("../lib/ica");
-
-function todosLosPuntosEvaluados() {
-  const luduenaEvaluados = luduenaData.puntos.map(evaluarPunto);
-  const otrosEvaluados = otrosData.puntos.map((p) => ({
-    ...p,
-    ica: null,
-    uso_permitido: null,
-    nivel_alerta: "sin_datos",
-    mensaje_alerta: "Todavía no se cargó una serie de mediciones oficiales para este punto."
-  }));
-  return [...luduenaEvaluados, ...otrosEvaluados];
-}
+const { todosLosPuntosEvaluados, luduenaData } = require("../lib/puntos");
 
 // GET /api/puntos -> todos los puntos de monitoreo con su nivel de alerta calculado
 router.get("/puntos", (req, res) => {

@@ -1,4 +1,4 @@
-const { evaluarUso, nivelAlertaDesdeUso, evaluarPunto } = require("./ica");
+const { evaluarUso, nivelAlertaDesdeUso, evaluarPunto, ultimaMedicion } = require("./ica");
 
 describe("evaluarUso - coliformes fecales faltantes (bug luduena-03/09)", () => {
   test("no debe dar Uso I si no hay medición de coliformes fecales, aunque el resto esté bien", () => {
@@ -90,5 +90,40 @@ describe("evaluarPunto", () => {
     };
     const resultado = evaluarPunto(punto);
     expect(resultado.nivel_alerta).toBe("amarillo");
+  });
+});
+
+describe("ultimaMedicion / historial_mediciones", () => {
+  test("con historial, toma la mas reciente (ultima del array)", () => {
+    const punto = {
+      id: "x",
+      historial_mediciones: [
+        { fecha: "2023-01-01", ph: 5 },
+        { fecha: "2024-01-01", ph: 7.5, coliformes_fecales_100ml: 50 }
+      ]
+    };
+    expect(ultimaMedicion(punto).fecha).toBe("2024-01-01");
+  });
+
+  test("evaluarPunto usa la ultima del historial, no la primera", () => {
+    const punto = {
+      id: "x",
+      historial_mediciones: [
+        { fecha: "2023-01-01", ph: 5, coliformes_fecales_100ml: 50 }, // pH fuera de rango
+        { fecha: "2024-01-01", ph: 7.5, coliformes_fecales_100ml: 50 } // dentro de rango
+      ]
+    };
+    const resultado = evaluarPunto(punto);
+    expect(resultado.nivel_alerta).toBe("verde");
+  });
+
+  test("historial vacio cae al mismo camino que sin datos", () => {
+    const resultado = evaluarPunto({ id: "x", historial_mediciones: [] });
+    expect(resultado.nivel_alerta).toBe("sin_datos");
+  });
+
+  test("compatibilidad: sin historial, usa ultima_medicion (formato viejo)", () => {
+    const punto = { id: "x", ultima_medicion: { ph: 7.3, coliformes_fecales_100ml: 50, dbo_mgl: 2 } };
+    expect(ultimaMedicion(punto)).toBe(punto.ultima_medicion);
   });
 });

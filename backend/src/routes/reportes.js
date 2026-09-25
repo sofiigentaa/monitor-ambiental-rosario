@@ -3,9 +3,10 @@ const router = express.Router();
 
 const {
   crearReporte,
-  listarReportes,
+  confirmarReporte,
   reportesCercanos,
-  hayAlertaTemprana
+  hayAlertaTemprana,
+  listarReportes
 } = require("../lib/reportes");
 
 // GET /api/reportes -> todos los reportes ciudadanos (sintomas + bruma)
@@ -19,6 +20,23 @@ router.post("/", (req, res) => {
   try {
     const reporte = crearReporte(req.body || {});
     res.status(201).json(reporte);
+  } catch (err) {
+    const esLimiteDeEnvios = err.message.includes("limite");
+    res.status(esLimiteDeEnvios ? 429 : 400).json({ error: err.message });
+  }
+});
+
+// POST /api/reportes/:id/confirmar -> otro vecino confirma un reporte existente
+router.post("/:id/confirmar", (req, res) => {
+  const id = Number(req.params.id);
+  const { dispositivo_id } = req.body || {};
+
+  try {
+    const reporte = confirmarReporte(id, dispositivo_id);
+    if (!reporte) {
+      return res.status(404).json({ error: "Reporte no encontrado" });
+    }
+    res.json(reporte);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

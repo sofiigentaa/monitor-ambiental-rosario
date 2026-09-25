@@ -98,9 +98,12 @@ romper o mostrar un error.
 | GET    | `/api/zonas/:barrio`    | Puntos de agua filtrados por barrio (substring, case-insensitive) |
 | GET    | `/api/resumen`          | Conteo de puntos de agua por nivel de alerta                    |
 | GET    | `/api/reportes`         | Todos los reportes ciudadanos (síntomas + bruma por foto)       |
-| POST   | `/api/reportes`         | Crea un reporte ciudadano nuevo                                 |
+| POST   | `/api/reportes`         | Crea un reporte ciudadano nuevo (requiere `dispositivo_id`, rate limit por dispositivo) |
+| POST   | `/api/reportes/:id/confirmar` | Otro vecino confirma un reporte existente ("yo también lo noto") |
 | GET    | `/api/reportes/alerta`  | Alerta temprana comunitaria cerca de un punto (`?lat=&lng=`)    |
 | GET    | `/api/humo`             | Focos de calor, pronóstico horario de riesgo de humo, nivel actual y próxima ventana de riesgo |
+| GET    | `/api/exportar/json`    | Datos abiertos: puntos de agua evaluados, en JSON               |
+| GET    | `/api/exportar/csv`     | Datos abiertos: puntos de agua evaluados, en CSV (una fila por punto) |
 
 ## Cómo se calcula el nivel de alerta
 
@@ -119,6 +122,33 @@ oxígeno disuelto, DBO y coliformes fecales contra los 3 usos que define esa nor
 Esto es una simplificación propia para esta app, no un índice reconocido
 oficialmente — está documentado en detalle en los comentarios de `ica.js`.
 
+### Historial y tendencia por punto
+
+Cada punto guarda un `historial_mediciones` (array, no un solo objeto) pensado para
+acumular mediciones en el tiempo. Hoy, salvo que se cargue una medición nueva, cada
+punto tiene una sola entrada — **no se inventaron mediciones viejas para "rellenar"
+el gráfico**. La vista de detalle de cada punto muestra un gráfico de línea (Chart.js
+por CDN) con pH, DBO y oxígeno disuelto, y un indicador de si mejora o empeora
+comparando las dos últimas mediciones; con una sola medición cargada, en cambio,
+muestra un aviso de que hace falta una segunda para poder graficar tendencia. Esto se
+resuelve solo cuando se complete la Fase 4 de agua (conectar `actualizar-datos.js` a
+una fuente en vivo) o se cargue a mano una medición nueva en
+`backend/src/data/puntos-luduena.json`.
+
+## Datos abiertos
+
+Para periodistas, investigadores u ONGs que quieran usar los datos de agua fuera de
+esta app, sin depender del frontend:
+
+- `GET /api/exportar/json` — los mismos puntos evaluados que `/api/puntos`, pensado
+  como endpoint estable para integraciones.
+- `GET /api/exportar/csv` — una fila por punto con su última medición (`backend/src/lib/exportar.js`),
+  para abrir directo en una planilla de cálculo.
+
+Ambos incluyen el nivel de alerta ya calculado. Como el resto del proyecto, son datos
+de agua (mensuales, no en tiempo real) — para reportes ciudadanos o alerta de humo en
+vivo, usá `/api/reportes` y `/api/humo`.
+
 ## Reportes ciudadanos y riesgo respiratorio
 
 No hay ninguna fuente de calidad de **aire** conectada a este proyecto (los datos
@@ -135,6 +165,15 @@ con una señal comunitaria explícitamente no-oficial:
   datos. Cada reporte y cada punto de agua tienen un botón para generar un reclamo
   formal (texto listo para copiar) con links a las categorías reales de
   [reclamos de rosario.gob.ar](https://www.rosario.gob.ar/inicio/consultas-y-reclamos).
+- **Confiabilidad de los reportes**: no hay login, así que un `dispositivo_id`
+  generado en el navegador (guardado en `localStorage`) es lo único que identifica
+  quién reporta. Con eso el backend limita cuántos reportes puede mandar un mismo
+  dispositivo por hora (rate limit, `backend/src/lib/reportes.js`), y cualquier otro
+  vecino puede "confirmar" un reporte ya existente ("👍 Yo también lo noto", tocando
+  el marcador en el mapa). Un reporte aislado sin confirmar pesa la mitad en los
+  cálculos de alerta temprana y de riesgo respiratorio que uno confirmado por al
+  menos un vecino — así un reporte erróneo o mal intencionado aislado no dispara
+  una alerta por sí solo.
 - **Riesgo respiratorio** (pestaña "🫁 Riesgo respiratorio"): combina los reportes
   cercanos (síntomas + bruma, últimas 24hs, 800m) y el pronóstico de humo (ver abajo)
   en un puntaje 0-100, ponderado por perfil de salud (general/asma/EPOC/niño

@@ -6,6 +6,7 @@ const path = require("path");
 const apiRouter = require("./routes/api");
 const reportesRouter = require("./routes/reportes");
 const humoRouter = require("./routes/humo");
+const exportarRouter = require("./routes/exportar");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use("/api", apiRouter);
 app.use("/api/reportes", reportesRouter);
 app.use("/api/humo", humoRouter);
+app.use("/api/exportar", exportarRouter);
 
 // Sirve el frontend hardcodeado directamente desde el backend (útil para
 // levantar todo con un solo comando en desarrollo/demo).
