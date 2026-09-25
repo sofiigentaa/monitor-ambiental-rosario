@@ -208,6 +208,14 @@ comentarios de `humo.js`, pensada para complementar — no reemplazar — las fu
 oficiales (por ejemplo, los avisos de Defensa Civil o del municipio ante eventos de
 humo). Los datos se cachean 45 minutos en memoria para no saturar las APIs gratuitas.
 
+**Limitación conocida en Render (plan free):** Open-Meteo rate-limita por IP, y Render
+comparte IPs de salida entre muchas apps de distintos usuarios — el cupo diario gratuito
+se puede agotar por tráfico ajeno, no solo por esta app (visto en producción:
+`"Daily API request limit exceeded"`, HTTP 429). Cuando pasa esto, `/api/humo` responde
+`datos_no_disponibles` con el detalle del error — es el comportamiento esperado, no un
+bug. Se resuelve solo (el cupo resetea diariamente) o de forma definitiva con un plan de
+Render con IP dedicada.
+
 ## Río y playas
 
 Pestaña "🌊 Río y playas", con dos fuentes de naturaleza muy distinta:
@@ -218,7 +226,11 @@ Pestaña "🌊 Río y playas", con dos fuentes de naturaleza muy distinta:
   tabla HTML de su sitio — se verificó el formato a mano antes de escribir el parser,
   pero por ser scraping es inherentemente frágil: si cambian el HTML de esa página,
   el endpoint va a empezar a responder `datos_no_disponibles` en vez de romperse o
-  devolver un dato incorrecto. Se muestra la tendencia (creciendo/bajando/estable) y
+  devolver un dato incorrecto. También puede fallar por caídas del propio sitio de
+  Prefectura (confirmado en la práctica: `.gob.ar` a veces tiene cortes de conexión
+  intermitentes; el error queda registrado como `datos_no_disponibles` con el código
+  de bajo nivel, ej. `UND_ERR_CONNECT_TIMEOUT`, para poder diferenciarlo). Se muestra
+  la tendencia (creciendo/bajando/estable) y
   los umbrales de alerta/evacuación que usa la propia Prefectura para Rosario, con
   una aclaración de que en bajante la contaminación tiende a concentrarse más (menos
   agua diluyendo los mismos vertidos).
