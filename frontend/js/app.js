@@ -259,31 +259,32 @@ async function cargarDatos() {
 }
 
 function poblarBarrios(puntos) {
-  const datalist = document.getElementById("barrios-datalist");
+  const select = document.getElementById("filtro-barrio");
   const barrios = [...new Set(puntos.map((p) => p.barrio_aprox).filter(Boolean))].sort((a, b) =>
     a.localeCompare(b, "es")
   );
-  datalist.innerHTML = barrios.map((b) => `<option value="${b}"></option>`).join("");
+  select.innerHTML =
+    '<option value="">Todos los barrios</option>' +
+    barrios.map((b) => `<option value="${b}">${b}</option>`).join("");
 }
 
 function initFiltro() {
-  const input = document.getElementById("filtro-barrio");
+  const selectBarrio = document.getElementById("filtro-barrio");
   const selectNivel = document.getElementById("filtro-nivel");
 
   function aplicarFiltros() {
-    const q = input.value.toLowerCase();
+    const barrio = selectBarrio.value;
     const nivel = selectNivel.value;
     const filtrados = todosLosPuntos.filter((p) => {
-      const coincideTexto =
-        (p.barrio_aprox || "").toLowerCase().includes(q) || (p.nombre || "").toLowerCase().includes(q);
+      const coincideBarrio = !barrio || p.barrio_aprox === barrio;
       const coincideNivel = !nivel || p.nivel_alerta === nivel;
-      return coincideTexto && coincideNivel;
+      return coincideBarrio && coincideNivel;
     });
     pintarLista(filtrados);
     pintarMarcadores(filtrados);
   }
 
-  input.addEventListener("input", aplicarFiltros);
+  selectBarrio.addEventListener("change", aplicarFiltros);
   selectNivel.addEventListener("change", aplicarFiltros);
 }
 

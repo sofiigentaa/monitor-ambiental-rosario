@@ -56,14 +56,9 @@
 
       <aside class="panel">
         <div class="panel__search">
-          <input
-            type="text"
-            id="filtro-barrio"
-            placeholder="Buscar por barrio (ej: Fisherton, Ludueña)..."
-            list="barrios-datalist"
-            autocomplete="off"
-          />
-          <datalist id="barrios-datalist"></datalist>
+          <select id="filtro-barrio">
+            <option value="">Todos los barrios</option>
+          </select>
           <select id="filtro-nivel">
             <option value="">Todos los niveles</option>
             <option value="rojo">🔴 No usar</option>
