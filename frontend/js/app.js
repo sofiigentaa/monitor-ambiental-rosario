@@ -815,6 +815,193 @@ function initReportesCiudadanos() {
   });
 }
 
+// ---- Expediente colectivo ----
+// Ver backend/src/lib/expediente.js: cuando se acumulan reportes ciudadanos
+// confirmados en una zona, arma un resumen para usar como base de un
+// reclamo formal o un pedido de informes. No reemplaza una inspeccion oficial.
+
+let mapaExpediente;
+
+function formatearFechaHora(iso) {
+  return iso ? new Date(iso).toLocaleString("es-AR") : "-";
+}
+
+// Calcula una vez los textos de cada seccion, para que generarTextoExpediente
+// (copiar/pegar) y generarHtmlExpediente (documento imprimible) muestren
+// exactamente lo mismo sin tener que parsear el texto plano del uno al otro.
+function calcularTextosExpediente(data, ubicacion) {
+  const sintomasTexto =
+    Object.entries(data.sintomas)
+      .map(([s, n]) => `- ${s}: ${n}`)
+      .join("\n") || "Sin datos.";
+
+  const brumaTexto = data.bruma
+    ? `${data.bruma.cantidad} reporte(s) de foto, puntaje visual promedio estimado ${data.bruma.promedio_estimado}/100 (heurística no oficial)`
+    : "Sin reportes de foto en el período.";
+
+  const puntosTexto = data.puntos_agua_en_alerta.length
+    ? data.puntos_agua_en_alerta
+        .map((p) => `- ${p.nombre} — nivel ${p.nivel_alerta}${p.fecha_medicion ? ` (medición: ${p.fecha_medicion})` : ""}`)
+        .join("\n")
+    : "Ninguno dentro de 3km.";
+
+  const humoTexto =
+    data.humo.estado === "ok"
+      ? `Nivel actual: ${data.humo.nivel_actual}.${
+          data.humo.proxima_ventana_riesgo
+            ? ` Próxima ventana de riesgo: ${formatearFechaHora(data.humo.proxima_ventana_riesgo.desde)} a ${formatearFechaHora(data.humo.proxima_ventana_riesgo.hasta)}.`
+            : ""
+        }`
+      : "Sin datos de humo disponibles en este momento.";
+
+  return {
+    generado: formatearFechaHora(data.generado),
+    ubicacion: `${ubicacion.lat.toFixed(5)}, ${ubicacion.lng.toFixed(5)}`,
+    resumen: `Vecinos involucrados (dispositivos distintos): ${data.vecinos_involucrados}\nReportes totales: ${data.total_reportes} (${data.reportes_confirmados} confirmados por al menos otro vecino)\nPeríodo: ${formatearFechaHora(data.periodo.desde)} a ${formatearFechaHora(data.periodo.hasta)}`,
+    sintomasTexto,
+    brumaTexto,
+    puntosTexto,
+    humoTexto,
+    disclaimer:
+      "Generado automáticamente a partir de reportes ciudadanos autogestionados en Monitor Ambiental Rosario (proyecto no oficial, de código abierto), sin verificación de campo. No reemplaza una inspección o medición oficial. Sirve como base para un reclamo formal ante la Municipalidad de Rosario o un pedido de informes ante el Concejo Municipal."
+  };
+}
+
+function generarTextoExpediente(data, ubicacion) {
+  const t = calcularTextosExpediente(data, ubicacion);
+  return [
+    "EXPEDIENTE COLECTIVO - Monitor Ambiental Rosario",
+    `Generado: ${t.generado}`,
+    `Ubicación de referencia: ${t.ubicacion}`,
+    "",
+    "RESUMEN",
+    t.resumen,
+    "",
+    "SÍNTOMAS REPORTADOS",
+    t.sintomasTexto,
+    "",
+    "REPORTES DE BRUMA (FOTO)",
+    t.brumaTexto,
+    "",
+    "PUNTOS DE AGUA CERCANOS EN ALERTA (hasta 3km)",
+    t.puntosTexto,
+    "",
+    "CONDICIÓN DE HUMO POR QUEMAS EN LAS ISLAS",
+    t.humoTexto,
+    "",
+    t.disclaimer
+  ].join("\n");
+}
+
+function generarHtmlExpediente(data, ubicacion) {
+  const t = calcularTextosExpediente(data, ubicacion);
+  const nl2br = (s) => s.replace(/\n/g, "<br>");
+
+  const cuerpo = `
+    <p>Generado: ${t.generado}<br>Ubicación de referencia: ${t.ubicacion}</p>
+    <h2>Resumen</h2><p>${nl2br(t.resumen)}</p>
+    <h2>Síntomas reportados</h2><p>${nl2br(t.sintomasTexto)}</p>
+    <h2>Reportes de bruma (foto)</h2><p>${t.brumaTexto}</p>
+    <h2>Puntos de agua cercanos en alerta (hasta 3km)</h2><p>${nl2br(t.puntosTexto)}</p>
+    <h2>Condición de humo por quemas en las islas</h2><p>${t.humoTexto}</p>
+    <p class="disclaimer">${t.disclaimer}</p>
+  `;
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Expediente colectivo - Monitor Ambiental Rosario</title>
+<style>
+  body { font-family: Georgia, "Times New Roman", serif; max-width: 720px; margin: 40px auto; color: #111; line-height: 1.5; padding: 0 20px; }
+  h1 { font-size: 1.4rem; border-bottom: 2px solid #333; padding-bottom: 8px; }
+  h2 { font-size: 1.05rem; margin-top: 26px; margin-bottom: 4px; }
+  p { margin: 4px 0 0; }
+  .disclaimer { margin-top: 30px; font-size: 0.78rem; color: #777; border-top: 1px solid #ccc; padding-top: 12px; }
+  .no-imprimir { margin: 0 0 20px; }
+  .no-imprimir button { padding: 8px 14px; font-size: 0.9rem; cursor: pointer; }
+  @media print { .no-imprimir { display: none; } body { margin: 0; padding: 20px; } }
+</style>
+</head>
+<body>
+  <div class="no-imprimir"><button onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button></div>
+  <h1>Expediente colectivo — Reclamo ambiental</h1>
+  ${cuerpo}
+</body>
+</html>`;
+}
+
+async function generarExpedienteUI(lat, lng) {
+  if (mapaExpediente) mapaExpediente.marcar(lat, lng);
+  const cont = document.getElementById("expediente-resultado");
+  cont.innerHTML = '<p class="panel__loading">Generando expediente…</p>';
+  try {
+    const res = await fetch(`${API_BASE}/expediente?lat=${lat}&lng=${lng}`);
+    const data = await res.json();
+    pintarExpediente(data, { lat, lng }, cont);
+  } catch (err) {
+    console.error("No se pudo generar el expediente", err);
+    cont.innerHTML = '<p class="panel__loading">No se pudo conectar con el backend.</p>';
+  }
+}
+
+function pintarExpediente(data, ubicacion, cont) {
+  if (!data.elegible) {
+    cont.innerHTML = `
+      <div class="humo-sin-datos">
+        <p>
+          Todavía no hay suficientes reportes confirmados en esta zona para armar un
+          expediente (señal acumulada: ${data.peso_total} / umbral: ${data.umbral}).
+          Pedile a más vecinos que reporten y confirmen desde el formulario de arriba.
+        </p>
+      </div>
+    `;
+    return;
+  }
+
+  const textoPlano = generarTextoExpediente(data, ubicacion);
+
+  cont.innerHTML = `
+    <div class="expediente-resumen">
+      <p><strong>${data.vecinos_involucrados}</strong> vecino(s) involucrados ·
+      <strong>${data.total_reportes}</strong> reporte(s) (${data.reportes_confirmados} confirmados)</p>
+      <p>Período: ${formatearFechaHora(data.periodo.desde)} a ${formatearFechaHora(data.periodo.hasta)}</p>
+    </div>
+    <div class="reclamo-acciones">
+      <button type="button" id="btn-copiar-expediente">Copiar texto</button>
+      <button type="button" id="btn-imprimir-expediente" class="btn-ir-canal">🖨️ Ver documento para imprimir/PDF</button>
+      <a href="${RECLAMO_DESAGUES_URL}" target="_blank" rel="noopener" class="btn-ir-canal btn-ir-canal--secundario">Es por agua/cloacas ↗</a>
+      <a href="${RECLAMO_GENERAL_URL}" target="_blank" rel="noopener" class="btn-ir-canal btn-ir-canal--secundario">Otras categorías ↗</a>
+    </div>
+    <textarea readonly rows="12">${textoPlano}</textarea>
+  `;
+
+  document
+    .getElementById("btn-copiar-expediente")
+    .addEventListener("click", (ev) => copiarAlPortapapeles(textoPlano, ev.target));
+
+  document.getElementById("btn-imprimir-expediente").addEventListener("click", () => {
+    const html = generarHtmlExpediente(data, ubicacion);
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+  });
+}
+
+function initExpediente() {
+  mapaExpediente = initMiniMapa("mapa-expediente", (lat, lng) => generarExpedienteUI(lat, lng));
+
+  document.getElementById("btn-usar-ubicacion-expediente").addEventListener("click", () => {
+    usarGeolocacion(
+      (lat, lng) => generarExpedienteUI(lat, lng),
+      () => {
+        document.getElementById("expediente-resultado").innerHTML =
+          "<p>No se pudo acceder a tu ubicación. Tocá el mapa de abajo para elegir la zona.</p>";
+      }
+    );
+  });
+}
+
 // ---- Riesgo respiratorio personal ----
 // Combina reportes comunitarios cercanos (sintomas + bruma estimada) con un
 // peso segun perfil de salud. Es un indicador propio, no un diagnostico
@@ -1299,6 +1486,7 @@ function initTabs() {
           if (mapaBruma && !document.getElementById("form-bruma").hidden) {
             mapaBruma.mapaChico.invalidateSize();
           }
+          if (mapaExpediente) mapaExpediente.mapaChico.invalidateSize();
         }
         if (tab === "riesgo" && mapaRiesgo) mapaRiesgo.mapaChico.invalidateSize();
         if (tab === "rio" && mapaBalnearios) mapaBalnearios.invalidateSize();
@@ -1326,6 +1514,7 @@ async function cargarTelegramCta() {
 initMapa();
 initFiltro();
 initReportesCiudadanos();
+initExpediente();
 initRiesgoRespiratorio();
 initReciclaje();
 initAlertaHumo();

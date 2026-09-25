@@ -732,6 +732,36 @@ body {
 .telegram-cta__ayuda { font-size: 0.78rem; color: #888; margin-top: 10px; }
 .telegram-cta__ayuda code { background: var(--fondo); padding: 1px 5px; border-radius: 4px; }
 
+.expediente-colectivo {
+  margin-top: 24px;
+  background: #fff;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+.expediente-colectivo__ayuda { font-size: 0.85rem; color: #666; max-width: 640px; }
+
+.expediente-resumen {
+  background: var(--fondo);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 14px 0;
+  font-size: 0.88rem;
+}
+
+.expediente-resumen p { margin: 4px 0; }
+
+#expediente-resultado textarea {
+  width: 100%;
+  font-family: monospace;
+  font-size: 0.75rem;
+  padding: 10px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  margin: 10px 0;
+}
+
 @media (max-width: 860px) {
   .content { grid-template-columns: 1fr; }
   .summary { grid-template-columns: repeat(2, 1fr); }

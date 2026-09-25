@@ -10,6 +10,7 @@ const exportarRouter = require("./routes/exportar");
 const rioRouter = require("./routes/rio");
 const balneariosRouter = require("./routes/balnearios");
 const telegramRouter = require("./routes/telegram");
+const expedienteRouter = require("./routes/expediente");
 const { iniciarBot } = require("./lib/bot");
 
 const app = express();
@@ -25,6 +26,7 @@ app.use("/api/exportar", exportarRouter);
 app.use("/api/rio", rioRouter);
 app.use("/api/balnearios", balneariosRouter);
 app.use("/api/telegram", telegramRouter);
+app.use("/api/expediente", expedienteRouter);
 
 // Sirve el frontend hardcodeado directamente desde el backend (útil para
 // levantar todo con un solo comando en desarrollo/demo).

@@ -107,6 +107,7 @@ romper o mostrar un error.
 | GET    | `/api/rio`              | Altura del río Paraná en Rosario, tendencia y niveles de alerta/evacuación |
 | GET    | `/api/balnearios`       | Semáforo de balnearios (cargado a mano, ver más abajo)          |
 | GET    | `/api/telegram/info`    | Si el bot de Telegram está configurado, y su `@usuario` (para el botón de la web) |
+| GET    | `/api/expediente`       | Resumen de reportes ciudadanos cerca de un punto (`?lat=&lng=`), para un reclamo formal o pedido de informes |
 
 ## Cómo se calcula el nivel de alerta
 
@@ -264,6 +265,31 @@ revisa una zona nueva no dispara avisos — solo establece la base para comparar
 Persistencia en memoria, igual que los reportes ciudadanos (se pierde si el proceso
 se reinicia).
 
+## Expediente colectivo
+
+Pestaña "📢 Reportes ciudadanos" → sección "Expediente colectivo". Cuando el peso
+acumulado de reportes de síntomas cerca de un punto (`backend/src/lib/expediente.js`,
+misma lógica de ponderación por confirmaciones que `reportes.js`) supera un umbral
+propio (5 — más alto que el umbral de 3 que dispara la alerta temprana, porque un
+expediente es un paso más serio), se arma un resumen con:
+
+- Cantidad de vecinos involucrados (dispositivos distintos: quien reportó + quienes confirmaron).
+- Reportes totales y confirmados, período (desde/hasta).
+- Síntomas agrupados y reportes de bruma por foto (con su puntaje visual promedio).
+- Puntos de agua cercanos (hasta 3km) en alerta amarilla o roja.
+- Condición de humo por quemas en las islas en el momento.
+
+Se puede copiar como texto (mismo patrón que los reclamos de puntos/reportes) o abrir
+como documento HTML con estilos de impresión (`@media print`) en una pestaña nueva,
+para imprimir o guardar como PDF desde el diálogo de impresión del navegador — sin
+backend ni build, generado 100% en el cliente con un Blob. Mantiene los mismos enlaces
+a los canales oficiales de reclamos ya usados en el resto de la app, y aclara que
+también sirve de base para un pedido de informes ante el Concejo Municipal (sin
+inventar un link directo a ese trámite, que en la práctica lo inicia un concejal).
+
+**Importante:** es un resumen de reportes ciudadanos autogestionados, sin verificación
+de campo. No reemplaza una inspección o medición oficial.
+
 ## Fuentes de datos
 
 - [Rosario Datos — Calidad Ambiental / Agua](https://datos.rosario.gob.ar/territorio/ambiente/calidad-ambiental/agua)
@@ -307,7 +333,8 @@ se reinicia).
   balnearios (cargado a mano, sin fuente automática disponible).
 - ✅ Fase 3 — alertas por suscripción (bot de Telegram, long-polling, sin
   librería externa).
-- 🟡 Fase 4 — reclamo colectivo a partir de reportes confirmados agrupados.
+- ✅ Fase 4 — expediente colectivo a partir de reportes confirmados agrupados,
+  documento imprimible generado en el cliente.
 - 🟡 Fase 5 — calidad de aire pronosticada (PM2.5/PM10, Open-Meteo) integrada
   a la pestaña de riesgo respiratorio.
 - 🟡 Persistencia real (hoy en memoria) para reportes ciudadanos y
