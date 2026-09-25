@@ -89,7 +89,9 @@ function evaluarUso(medicion) {
   }
 
   // Coliformes fecales: el parámetro más directamente ligado a riesgo de
-  // intoxicación por contacto (indicador de contaminación cloacal).
+  // intoxicación por contacto (indicador de contaminación cloacal). Si no se
+  // midió, no se puede confirmar Uso I: sin este dato no hay forma de saber
+  // si hay contaminación cloacal, así que no debe salir "verde" por default.
   const cf = parseColiforme(medicion.coliformes_fecales_100ml);
   if (cf !== null) {
     if (cf > LIMITES.coliformes_fecales_100ml.usoI_max) {
@@ -100,6 +102,9 @@ function evaluarUso(medicion) {
       cumpleII = false;
       motivosNoII.push(`Coliformes fecales ${cf}/100ml muy por encima del límite sanitario`);
     }
+  } else {
+    cumpleI = false;
+    motivosNoI.push("Coliformes fecales no medidos: no se puede confirmar apto para contacto directo (Uso I)");
   }
 
   let uso, motivos;
