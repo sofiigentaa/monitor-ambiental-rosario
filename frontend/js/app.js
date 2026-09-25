@@ -221,11 +221,6 @@ function mostrarDetalle(punto) {
           Ir a reclamos de rosario.gob.ar ↗
         </a>
       </div>
-      <p class="reclamo-nota">
-        Copiá el texto y pegalo ahí. rosario.gob.ar no tiene una categoría específica para
-        contaminación de un curso de agua: elegí "Desagües y zanjas" o la que más se ajuste
-        dentro de "Ambiente y mantenimiento urbano". Para enviarlo vas a necesitar tu Perfil Digital.
-      </p>
     `;
     document
       .getElementById("btn-copiar-reclamo-punto")
@@ -433,11 +428,6 @@ function mostrarConfirmacionReporte(reporte) {
         Ir a reclamos de rosario.gob.ar ↗
       </a>
     </div>
-    <p class="reclamo-nota">
-      Copiá el texto y pegalo ahí. rosario.gob.ar no tiene una categoría específica para
-      contaminación de un curso de agua: elegí "Desagües y zanjas" o la que más se ajuste
-      dentro de "Ambiente y mantenimiento urbano". Para enviarlo vas a necesitar tu Perfil Digital.
-    </p>
   `;
   document
     .getElementById("btn-copiar-reclamo-reporte")
