@@ -64,6 +64,13 @@
             autocomplete="off"
           />
           <datalist id="barrios-datalist"></datalist>
+          <select id="filtro-nivel">
+            <option value="">Todos los niveles</option>
+            <option value="rojo">🔴 No usar</option>
+            <option value="amarillo">🟡 Evitar contacto</option>
+            <option value="verde">🟢 Apta / bajo riesgo</option>
+            <option value="sin_datos">⚪ Sin datos</option>
+          </select>
         </div>
         <div class="panel__list" id="lista-puntos">
           <p class="panel__loading">Cargando puntos de monitoreo…</p>
@@ -86,6 +93,65 @@
         <div><strong>Turbidez</strong><p>Qué tan "sucia" o turbia se ve el agua, por sólidos en suspensión.</p></div>
         <div><strong>Conductividad</strong><p>Sales y contaminantes disueltos. Cambios bruscos indican vertidos.</p></div>
       </div>
+    </section>
+
+    <section class="reportes-ciudadanos">
+      <h2>Reportá lo que ves o sentís</h2>
+      <p class="reportes-ciudadanos__ayuda">
+        Los datos oficiales de agua son mensuales. Estos reportes son de la comunidad, en
+        tiempo real, para detectar posibles focos entre monitoreos oficiales. No reemplazan
+        una medición certificada.
+      </p>
+
+      <div class="reportes-ciudadanos__acciones">
+        <button type="button" id="btn-reportar-sintoma" class="btn-reporte">🤧 Reportar síntomas</button>
+        <button type="button" id="btn-reportar-bruma" class="btn-reporte">📷 Subir foto del aire</button>
+      </div>
+
+      <form id="form-sintoma" class="form-reporte" hidden>
+        <p class="form-reporte__ubicacion">
+          <button type="button" id="btn-usar-ubicacion-sintoma">📍 Usar mi ubicación</button>
+          <span id="ubicacion-sintoma-estado">o hacé click en el mapa para marcarla</span>
+        </p>
+        <fieldset>
+          <legend>¿Qué sentís?</legend>
+          <label><input type="checkbox" value="tos" name="sintoma-sintoma" /> Tos</label>
+          <label><input type="checkbox" value="ardor_ojos" name="sintoma-sintoma" /> Ardor en los ojos</label>
+          <label><input type="checkbox" value="dificultad_respirar" name="sintoma-sintoma" /> Dificultad para respirar</label>
+          <label><input type="checkbox" value="olor_fuerte" name="sintoma-sintoma" /> Olor fuerte</label>
+        </fieldset>
+        <textarea id="sintoma-descripcion" placeholder="Contanos más (opcional)"></textarea>
+        <button type="submit">Enviar reporte</button>
+      </form>
+
+      <form id="form-bruma" class="form-reporte" hidden>
+        <p class="form-reporte__ubicacion">
+          <button type="button" id="btn-usar-ubicacion-bruma">📍 Usar mi ubicación</button>
+          <span id="ubicacion-bruma-estado">o hacé click en el mapa para marcarla</span>
+        </p>
+        <input type="file" id="input-foto-bruma" accept="image/*" capture="environment" />
+        <div id="bruma-preview"></div>
+        <button type="submit" id="btn-enviar-bruma" disabled>Enviar reporte</button>
+      </form>
+
+      <div id="reporte-confirmacion" class="reporte-confirmacion" hidden></div>
+    </section>
+
+    <section class="riesgo-respiratorio">
+      <h2>Tu riesgo respiratorio en la zona</h2>
+      <p class="riesgo-respiratorio__disclaimer">
+        Estimación a partir de reportes comunitarios (síntomas y fotos), no de sensores
+        certificados de calidad de aire. No reemplaza indicación médica.
+      </p>
+      <label for="perfil-respiratorio">Tu perfil:</label>
+      <select id="perfil-respiratorio">
+        <option value="general">General</option>
+        <option value="asma">Asma</option>
+        <option value="epoc">EPOC</option>
+        <option value="nino_deportista">Niño/a deportista</option>
+      </select>
+      <button type="button" id="btn-calcular-riesgo">📍 Calcular mi riesgo acá</button>
+      <div id="riesgo-resultado"></div>
     </section>
 
   </main>

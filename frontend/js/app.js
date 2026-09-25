@@ -48,10 +48,19 @@ function pintarMarcadores(puntos) {
     .map(crearMarcador);
 }
 
-function pintarLista(puntos) {
+const ORDEN_SEVERIDAD = { rojo: 0, amarillo: 1, sin_datos: 2, verde: 3 };
+
+function ordenarPorSeveridad(puntos) {
+  return [...puntos].sort(
+    (a, b) => (ORDEN_SEVERIDAD[a.nivel_alerta] ?? 9) - (ORDEN_SEVERIDAD[b.nivel_alerta] ?? 9)
+  );
+}
+
+function pintarLista(puntosSinOrdenar) {
   const cont = document.getElementById("lista-puntos");
+  const puntos = ordenarPorSeveridad(puntosSinOrdenar);
   if (puntos.length === 0) {
-    cont.innerHTML = '<p class="panel__loading">No hay puntos para ese barrio.</p>';
+    cont.innerHTML = '<p class="panel__loading">No hay puntos para ese filtro.</p>';
     return;
   }
 
@@ -95,6 +104,56 @@ function textoNivel(nivel) {
   );
 }
 
+const PATRONES_FUENTE = [
+  { patron: /emisario\s*\d+/gi, etiqueta: (m) => `Descarga del ${m[0]}` },
+  { patron: /pluviocloacal(es)?/gi, etiqueta: () => "Descarga pluviocloacal" },
+  { patron: /conducto pluvial/gi, etiqueta: () => "Conducto pluvial" },
+  { patron: /vertido[s]?\s+industrial(es)?/gi, etiqueta: () => "Vertido industrial" },
+  { patron: /residuos/gi, etiqueta: () => "Residuos en el entorno" },
+  { patron: /entubamiento/gi, etiqueta: () => "Tramo entubado" }
+];
+
+// Extrae menciones de posibles fuentes de contaminacion a partir del texto
+// libre de "descripcion" (ya cargado en el dataset oficial). No agrega datos
+// nuevos: solo resalta lo que el informe ya describe, para que sea mas facil
+// de leer de un vistazo.
+function extraerFuentesProbables(descripcion) {
+  if (!descripcion) return [];
+  const encontradas = new Set();
+  PATRONES_FUENTE.forEach(({ patron, etiqueta }) => {
+    const matches = descripcion.matchAll(patron);
+    for (const m of matches) {
+      encontradas.add(etiqueta(m));
+    }
+  });
+  return [...encontradas];
+}
+
+function generarTextoReclamoPunto(punto) {
+  return [
+    `Reclamo ambiental - Monitor Hídrico Rosario`,
+    `Fecha: ${new Date().toLocaleString("es-AR")}`,
+    `Punto: ${punto.nombre}`,
+    `Ubicación (lat, lng): ${punto.lat}, ${punto.lng}`,
+    `Barrio aprox.: ${punto.barrio_aprox || "-"}`,
+    `Nivel de alerta actual: ${textoNivel(punto.nivel_alerta)}`,
+    punto.ultima_medicion ? `Última medición oficial: ${punto.ultima_medicion.fecha}` : null,
+    punto.mensaje_alerta ? `Detalle: ${punto.mensaje_alerta}` : null
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function copiarAlPortapapeles(texto, boton) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(texto).then(() => {
+      const original = boton.textContent;
+      boton.textContent = "Copiado ✓";
+      setTimeout(() => (boton.textContent = original), 1500);
+    });
+  }
+}
+
 function mostrarDetalle(punto) {
   const seccion = document.getElementById("detalle");
   const cont = document.getElementById("detalle-contenido");
@@ -115,6 +174,18 @@ function mostrarDetalle(punto) {
   `
     : "<p>Todavía no hay una medición oficial cargada para este punto.</p>";
 
+  const fuentes = extraerFuentesProbables(punto.descripcion);
+  const fuentesHtml = fuentes.length
+    ? `
+    <div class="detalle-fuentes">
+      <strong>Posibles fuentes mencionadas en el informe:</strong>
+      <div class="detalle-fuentes__chips">
+        ${fuentes.map((f) => `<span class="chip">${f}</span>`).join("")}
+      </div>
+    </div>
+  `
+    : "";
+
   cont.innerHTML = `
     <span class="detalle-badge badge--${punto.nivel_alerta}">${textoNivel(punto.nivel_alerta)}</span>
     <h2>${punto.nombre}</h2>
@@ -124,7 +195,29 @@ function mostrarDetalle(punto) {
     <p><em>${punto.mensaje_alerta || ""}</em></p>
     ${params}
     ${m && m.observacion_campo ? `<p><strong>Observación de campo:</strong> ${m.observacion_campo}</p>` : ""}
+    ${fuentesHtml}
+    <div class="detalle-reclamo">
+      <button type="button" id="btn-generar-reclamo">📋 Generar reclamo formal de este punto</button>
+      <div id="reclamo-punto-resultado" hidden></div>
+    </div>
   `;
+
+  document.getElementById("btn-generar-reclamo").addEventListener("click", () => {
+    const texto = generarTextoReclamoPunto(punto);
+    const cont2 = document.getElementById("reclamo-punto-resultado");
+    cont2.hidden = false;
+    cont2.innerHTML = `
+      <textarea readonly rows="6">${texto}</textarea>
+      <button type="button" id="btn-copiar-reclamo-punto">Copiar texto del reclamo</button>
+      <p class="reclamo-nota">
+        Pegalo en el canal oficial de reclamos ambientales de la Municipalidad de Rosario
+        (verificá el canal vigente antes de enviarlo: línea 147 / rosario.gob.ar).
+      </p>
+    `;
+    document
+      .getElementById("btn-copiar-reclamo-punto")
+      .addEventListener("click", (ev) => copiarAlPortapapeles(texto, ev.target));
+  });
 
   seccion.hidden = false;
   seccion.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -175,21 +268,404 @@ function poblarBarrios(puntos) {
 
 function initFiltro() {
   const input = document.getElementById("filtro-barrio");
-  input.addEventListener("input", () => {
+  const selectNivel = document.getElementById("filtro-nivel");
+
+  function aplicarFiltros() {
     const q = input.value.toLowerCase();
-    const filtrados = todosLosPuntos.filter((p) =>
-      (p.barrio_aprox || "").toLowerCase().includes(q) ||
-      (p.nombre || "").toLowerCase().includes(q)
-    );
+    const nivel = selectNivel.value;
+    const filtrados = todosLosPuntos.filter((p) => {
+      const coincideTexto =
+        (p.barrio_aprox || "").toLowerCase().includes(q) || (p.nombre || "").toLowerCase().includes(q);
+      const coincideNivel = !nivel || p.nivel_alerta === nivel;
+      return coincideTexto && coincideNivel;
+    });
     pintarLista(filtrados);
     pintarMarcadores(filtrados);
-  });
+  }
+
+  input.addEventListener("input", aplicarFiltros);
+  selectNivel.addEventListener("change", aplicarFiltros);
 }
 
 document.getElementById("detalle-cerrar").addEventListener("click", () => {
   document.getElementById("detalle").hidden = true;
 });
 
+// ---- Reportes ciudadanos: sintomas respiratorios y bruma estimada por foto ----
+// No hay ninguna fuente de calidad de AIRE conectada a este proyecto (el
+// dataset oficial es solo de agua). Esta capa es una señal comunitaria en
+// tiempo real, explicitamente no-oficial, para detectar posibles focos.
+
+let todosLosReportes = [];
+let reportesMarcadores = [];
+let marcadorSeleccionUbicacion = null;
+let modoSeleccionUbicacion = null; // 'sintoma' | 'bruma' | 'riesgo' | null
+let ubicacionSintoma = null;
+let ubicacionBruma = null;
+let brumaEstimadaActual = null;
+
+function distanciaKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function marcarUbicacionEnMapa(lat, lng) {
+  if (marcadorSeleccionUbicacion) mapa.removeLayer(marcadorSeleccionUbicacion);
+  marcadorSeleccionUbicacion = L.marker([lat, lng], { opacity: 0.85 }).addTo(mapa);
+  mapa.panTo([lat, lng]);
+}
+
+function usarGeolocacion(onOk, onError) {
+  if (!navigator.geolocation) {
+    onError();
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => onOk(pos.coords.latitude, pos.coords.longitude),
+    () => onError(),
+    { timeout: 8000 }
+  );
+}
+
+async function cargarReportes() {
+  try {
+    const res = await fetch(`${API_BASE}/reportes`);
+    const data = await res.json();
+    todosLosReportes = data.reportes || [];
+    pintarReportesEnMapa(todosLosReportes);
+  } catch (err) {
+    console.error("No se pudieron cargar los reportes ciudadanos", err);
+  }
+}
+
+function pintarReportesEnMapa(reportes) {
+  reportesMarcadores.forEach((m) => mapa.removeLayer(m));
+  reportesMarcadores = reportes.map((r) => {
+    if (r.tipo === "bruma") {
+      const intensidad = (r.bruma_estimada || 0) / 100;
+      return L.circleMarker([r.lat, r.lng], {
+        radius: 8 + intensidad * 6,
+        color: "#8b5e34",
+        weight: 1,
+        fillColor: "#c9a26a",
+        fillOpacity: 0.3 + intensidad * 0.4
+      })
+        .addTo(mapa)
+        .bindTooltip(`Bruma estimada (foto, no oficial): ${r.bruma_estimada}/100`);
+    }
+    return L.circleMarker([r.lat, r.lng], {
+      radius: 7,
+      color: "#e67e22",
+      weight: 1,
+      fillColor: "#f39c12",
+      fillOpacity: 0.6
+    })
+      .addTo(mapa)
+      .bindTooltip(`Síntomas reportados: ${(r.sintomas || []).join(", ") || "sin detalle"}`);
+  });
+}
+
+async function enviarReporte(payload) {
+  try {
+    const res = await fetch(`${API_BASE}/reportes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error("No se pudo enviar el reporte");
+    const reporte = await res.json();
+    mostrarConfirmacionReporte(reporte);
+    await cargarReportes();
+    return reporte;
+  } catch (err) {
+    console.error(err);
+    alert("No se pudo enviar el reporte. Intentá de nuevo.");
+    return null;
+  }
+}
+
+function generarTextoReclamoReporte(reporte) {
+  const tipoTexto = reporte.tipo === "sintoma" ? "síntomas respiratorios/irritación" : "bruma o humo visible";
+  return [
+    `Reclamo ambiental - Monitor Hídrico Rosario`,
+    `Fecha: ${new Date(reporte.fecha).toLocaleString("es-AR")}`,
+    `Ubicación (lat, lng): ${reporte.lat.toFixed(5)}, ${reporte.lng.toFixed(5)}`,
+    `Tipo de reporte: ${tipoTexto}`,
+    reporte.sintomas && reporte.sintomas.length ? `Síntomas: ${reporte.sintomas.join(", ")}` : null,
+    reporte.bruma_estimada !== null && reporte.bruma_estimada !== undefined
+      ? `Bruma estimada (visual, no certificada): ${reporte.bruma_estimada}/100`
+      : null,
+    reporte.descripcion ? `Descripción: ${reporte.descripcion}` : null
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function mostrarConfirmacionReporte(reporte) {
+  const cont = document.getElementById("reporte-confirmacion");
+  const texto = generarTextoReclamoReporte(reporte);
+  cont.hidden = false;
+  cont.innerHTML = `
+    <p>✓ Reporte enviado, gracias. Si querés, pasalo de queja a reclamo formal:</p>
+    <textarea readonly rows="6">${texto}</textarea>
+    <button type="button" id="btn-copiar-reclamo-reporte">Copiar texto del reclamo</button>
+    <p class="reclamo-nota">
+      Pegalo en el canal oficial de reclamos ambientales de la Municipalidad de Rosario
+      (verificá el canal vigente antes de enviarlo: línea 147 / rosario.gob.ar).
+    </p>
+  `;
+  document
+    .getElementById("btn-copiar-reclamo-reporte")
+    .addEventListener("click", (ev) => copiarAlPortapapeles(texto, ev.target));
+}
+
+function cargarImagen(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// Heuristica visual simple para estimar "bruma" a partir de una foto (NO es
+// una medicion certificada de calidad de aire). Una escena con bruma/humo
+// tiende a verse mas grisacea/blanquecina: baja saturacion de color y bajo
+// contraste de luminancia. Se muestrea la imagen reducida a 64x64 en un
+// canvas y se combinan esas dos señales en un puntaje 0-100.
+async function estimarBrumaDesdeFoto(file) {
+  const img = await cargarImagen(file);
+  const tam = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = tam;
+  canvas.height = tam;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0, tam, tam);
+  const { data } = ctx.getImageData(0, 0, tam, tam);
+
+  let sumaSat = 0;
+  let sumaLum = 0;
+  let sumaLum2 = 0;
+  const n = tam * tam;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i] / 255;
+    const g = data[i + 1] / 255;
+    const b = data[i + 2] / 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const sat = max === 0 ? 0 : (max - min) / max;
+    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+    sumaSat += sat;
+    sumaLum += lum;
+    sumaLum2 += lum * lum;
+  }
+
+  const satProm = sumaSat / n;
+  const lumProm = sumaLum / n;
+  const varianzaLum = Math.max(sumaLum2 / n - lumProm * lumProm, 0);
+  const contraste = Math.sqrt(varianzaLum);
+
+  const puntajeSaturacion = (1 - satProm) * 60;
+  const puntajeContraste = (1 - Math.min(contraste * 4, 1)) * 40;
+
+  return Math.max(0, Math.min(100, Math.round(puntajeSaturacion + puntajeContraste)));
+}
+
+function initReportesCiudadanos() {
+  const btnSintoma = document.getElementById("btn-reportar-sintoma");
+  const btnBruma = document.getElementById("btn-reportar-bruma");
+  const formSintoma = document.getElementById("form-sintoma");
+  const formBruma = document.getElementById("form-bruma");
+
+  btnSintoma.addEventListener("click", () => {
+    formSintoma.hidden = !formSintoma.hidden;
+    formBruma.hidden = true;
+  });
+  btnBruma.addEventListener("click", () => {
+    formBruma.hidden = !formBruma.hidden;
+    formSintoma.hidden = true;
+  });
+
+  document.getElementById("btn-usar-ubicacion-sintoma").addEventListener("click", () => {
+    usarGeolocacion(
+      (lat, lng) => {
+        ubicacionSintoma = { lat, lng };
+        document.getElementById("ubicacion-sintoma-estado").textContent = "Ubicación capturada ✓";
+        marcarUbicacionEnMapa(lat, lng);
+      },
+      () => {
+        modoSeleccionUbicacion = "sintoma";
+        document.getElementById("ubicacion-sintoma-estado").textContent =
+          "No se pudo acceder a tu ubicación: hacé click en el mapa para marcarla.";
+      }
+    );
+  });
+
+  document.getElementById("btn-usar-ubicacion-bruma").addEventListener("click", () => {
+    usarGeolocacion(
+      (lat, lng) => {
+        ubicacionBruma = { lat, lng };
+        document.getElementById("ubicacion-bruma-estado").textContent = "Ubicación capturada ✓";
+        marcarUbicacionEnMapa(lat, lng);
+      },
+      () => {
+        modoSeleccionUbicacion = "bruma";
+        document.getElementById("ubicacion-bruma-estado").textContent =
+          "No se pudo acceder a tu ubicación: hacé click en el mapa para marcarla.";
+      }
+    );
+  });
+
+  mapa.on("click", (e) => {
+    if (modoSeleccionUbicacion === "sintoma") {
+      ubicacionSintoma = { lat: e.latlng.lat, lng: e.latlng.lng };
+      document.getElementById("ubicacion-sintoma-estado").textContent = "Ubicación marcada en el mapa ✓";
+      marcarUbicacionEnMapa(e.latlng.lat, e.latlng.lng);
+      modoSeleccionUbicacion = null;
+    } else if (modoSeleccionUbicacion === "bruma") {
+      ubicacionBruma = { lat: e.latlng.lat, lng: e.latlng.lng };
+      document.getElementById("ubicacion-bruma-estado").textContent = "Ubicación marcada en el mapa ✓";
+      marcarUbicacionEnMapa(e.latlng.lat, e.latlng.lng);
+      modoSeleccionUbicacion = null;
+    } else if (modoSeleccionUbicacion === "riesgo") {
+      calcularYMostrarRiesgo(e.latlng.lat, e.latlng.lng);
+      modoSeleccionUbicacion = null;
+    }
+  });
+
+  formSintoma.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    if (!ubicacionSintoma) {
+      alert("Primero marcá tu ubicación (botón 'Usar mi ubicación' o click en el mapa).");
+      return;
+    }
+    const sintomas = [...formSintoma.querySelectorAll('input[name="sintoma-sintoma"]:checked')].map(
+      (el) => el.value
+    );
+    const descripcion = document.getElementById("sintoma-descripcion").value;
+    const ok = await enviarReporte({ tipo: "sintoma", ...ubicacionSintoma, sintomas, descripcion });
+    if (ok) {
+      formSintoma.reset();
+      formSintoma.hidden = true;
+      ubicacionSintoma = null;
+      document.getElementById("ubicacion-sintoma-estado").textContent = "o hacé click en el mapa para marcarla";
+    }
+  });
+
+  document.getElementById("input-foto-bruma").addEventListener("change", async (ev) => {
+    const file = ev.target.files[0];
+    if (!file) return;
+    brumaEstimadaActual = await estimarBrumaDesdeFoto(file);
+    document.getElementById("bruma-preview").innerHTML = `
+      <p>Bruma estimada: <strong>${brumaEstimadaActual}/100</strong>
+      (estimación visual aproximada a partir de la foto, no es una medición certificada).</p>
+    `;
+    document.getElementById("btn-enviar-bruma").disabled = false;
+  });
+
+  formBruma.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    if (!ubicacionBruma) {
+      alert("Primero marcá tu ubicación (botón 'Usar mi ubicación' o click en el mapa).");
+      return;
+    }
+    if (brumaEstimadaActual === null) {
+      alert("Subí una foto primero.");
+      return;
+    }
+    const ok = await enviarReporte({ tipo: "bruma", ...ubicacionBruma, bruma_estimada: brumaEstimadaActual });
+    if (ok) {
+      formBruma.reset();
+      formBruma.hidden = true;
+      document.getElementById("bruma-preview").innerHTML = "";
+      document.getElementById("btn-enviar-bruma").disabled = true;
+      ubicacionBruma = null;
+      brumaEstimadaActual = null;
+      document.getElementById("ubicacion-bruma-estado").textContent = "o hacé click en el mapa para marcarla";
+    }
+  });
+}
+
+// ---- Riesgo respiratorio personal ----
+// Combina reportes comunitarios cercanos (sintomas + bruma estimada) con un
+// peso segun perfil de salud. Es un indicador propio, no un diagnostico
+// medico ni una medicion oficial de calidad de aire.
+
+const PESO_PERFIL_RESPIRATORIO = {
+  general: 1,
+  asma: 1.6,
+  epoc: 1.8,
+  nino_deportista: 1.4
+};
+
+function calcularYMostrarRiesgo(lat, lng) {
+  const perfil = document.getElementById("perfil-respiratorio").value;
+  const peso = PESO_PERFIL_RESPIRATORIO[perfil] || 1;
+  const radioKm = 0.8;
+  const ventanaMs = 24 * 60 * 60 * 1000;
+  const ahora = Date.now();
+
+  marcarUbicacionEnMapa(lat, lng);
+
+  const cercanos = todosLosReportes.filter((r) => {
+    const d = distanciaKm(lat, lng, r.lat, r.lng);
+    const antig = ahora - new Date(r.fecha).getTime();
+    return d <= radioKm && antig <= ventanaMs;
+  });
+
+  const sintomas = cercanos.filter((r) => r.tipo === "sintoma");
+  const brumas = cercanos.filter((r) => r.tipo === "bruma");
+  const brumaProm = brumas.length
+    ? brumas.reduce((acc, r) => acc + (r.bruma_estimada || 0), 0) / brumas.length
+    : 0;
+
+  const puntajeBase = sintomas.length * 15 + brumaProm * 0.5;
+  const puntajeFinal = Math.min(100, Math.round(puntajeBase * peso));
+
+  let nivel, mensaje;
+  if (puntajeFinal >= 60) {
+    nivel = "alto";
+    mensaje = "Riesgo alto para tu perfil en esta zona: evitá actividad física al aire libre.";
+  } else if (puntajeFinal >= 25) {
+    nivel = "moderado";
+    mensaje = "Riesgo moderado para tu perfil: prestá atención a síntomas y considerá reducir la exposición.";
+  } else {
+    nivel = "bajo";
+    mensaje = "No hay señales comunitarias recientes de riesgo respiratorio en esta zona.";
+  }
+
+  document.getElementById("riesgo-resultado").innerHTML = `
+    <p class="riesgo-nivel riesgo-nivel--${nivel}">${mensaje}</p>
+    <p class="riesgo-detalle">
+      Basado en ${sintomas.length} reporte(s) de síntomas y ${brumas.length} reporte(s) de bruma
+      en un radio de ${radioKm * 1000}m en las últimas 24hs. Esto es un indicador comunitario,
+      no una medición oficial de calidad de aire ni un diagnóstico médico.
+    </p>
+  `;
+}
+
+function initRiesgoRespiratorio() {
+  document.getElementById("btn-calcular-riesgo").addEventListener("click", () => {
+    usarGeolocacion(
+      (lat, lng) => calcularYMostrarRiesgo(lat, lng),
+      () => {
+        modoSeleccionUbicacion = "riesgo";
+        document.getElementById("riesgo-resultado").innerHTML =
+          "<p>No se pudo acceder a tu ubicación. Hacé click en el mapa para elegir el punto a evaluar.</p>";
+      }
+    );
+  });
+}
+
 initMapa();
 initFiltro();
+initReportesCiudadanos();
+initRiesgoRespiratorio();
 cargarDatos();
+cargarReportes();
