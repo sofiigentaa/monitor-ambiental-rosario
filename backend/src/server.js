@@ -16,10 +16,10 @@ app.use("/api", apiRouter);
 app.use(express.static(path.join(__dirname, "..", "..", "frontend")));
 
 app.get("/health", (req, res) => {
-  res.json({ status: "ok", proyecto: "birriaecolab" });
+  res.json({ status: "ok", proyecto: "Monitor Hídrico Rosario" });
 });
 
 app.listen(PORT, () => {
-  console.log(`birriaecolab backend escuchando en http://localhost:${PORT}`);
+  console.log(`Monitor Hídrico Rosario backend escuchando en http://localhost:${PORT}`);
   console.log(`API en http://localhost:${PORT}/api/puntos`);
 });

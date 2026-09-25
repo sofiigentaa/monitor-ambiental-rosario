@@ -1,4 +1,4 @@
-// birriaecolab - frontend
+// Monitor Hídrico Rosario - frontend
 // Diseño/layout hardcodeado a propósito. Este archivo solo consume el API
 // propio (backend/src/routes/api.js) y pinta mapa + panel + detalle.
 

@@ -1,7 +1,7 @@
 {
-  "name": "birriaecolab-backend",
+  "name": "monitor-hidrico-rosario-backend",
   "version": "0.1.0",
-  "description": "API de monitoreo de contaminación hídrica de Rosario - birriaecolab",
+  "description": "API de monitoreo de contaminación hídrica de Rosario - Monitor Hídrico Rosario",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

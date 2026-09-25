@@ -1,4 +1,4 @@
-# birriaecolab — Monitor de contaminación hídrica de Rosario
+# Monitor Hídrico Rosario
 
 App web para el desarrollo sostenible y el cuidado del ambiente: muestra qué zonas de
 Rosario (arroyos Ludueña y Saladillo, río Paraná) tienen agua contaminada, a partir de
@@ -18,7 +18,7 @@ se intoxique por contacto con el agua.
   convenio con la FCEIA-UNR). No es tiempo real: son muestreos mensuales.
 
 ```
-birriaecolab/
+monitor-hidrico-rosario/
 ├── backend/
 │   ├── src/
 │   │   ├── data/            # datasets semilla (JSON)
