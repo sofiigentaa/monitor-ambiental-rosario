@@ -13,6 +13,9 @@ const COLORES = {
   sin_datos: "#6b7280"
 };
 
+// Canal oficial de reclamos ambientales de la Municipalidad de Rosario.
+const URL_RECLAMO_AMBIENTAL = "https://www.rosario.gob.ar/inicio/reclamos-sobre-ambiente-y-mantenimiento-urbano";
+
 let mapa;
 let marcadores = [];
 let todosLosPuntos = [];
@@ -208,10 +211,15 @@ function mostrarDetalle(punto) {
     cont2.hidden = false;
     cont2.innerHTML = `
       <textarea readonly rows="6">${texto}</textarea>
-      <button type="button" id="btn-copiar-reclamo-punto">Copiar texto del reclamo</button>
+      <div class="reclamo-acciones">
+        <button type="button" id="btn-copiar-reclamo-punto">Copiar texto del reclamo</button>
+        <a href="${URL_RECLAMO_AMBIENTAL}" target="_blank" rel="noopener" class="btn-ir-canal">
+          Ir al canal oficial de reclamos ↗
+        </a>
+      </div>
       <p class="reclamo-nota">
-        Pegalo en el canal oficial de reclamos ambientales de la Municipalidad de Rosario
-        (verificá el canal vigente antes de enviarlo: línea 147 / rosario.gob.ar).
+        Copiá el texto y pegalo ahí. Es el canal de reclamos ambientales de rosario.gob.ar;
+        verificá que sea el formulario correcto antes de enviarlo.
       </p>
     `;
     document
@@ -414,10 +422,15 @@ function mostrarConfirmacionReporte(reporte) {
   cont.innerHTML = `
     <p>✓ Reporte enviado, gracias. Si querés, pasalo de queja a reclamo formal:</p>
     <textarea readonly rows="6">${texto}</textarea>
-    <button type="button" id="btn-copiar-reclamo-reporte">Copiar texto del reclamo</button>
+    <div class="reclamo-acciones">
+      <button type="button" id="btn-copiar-reclamo-reporte">Copiar texto del reclamo</button>
+      <a href="${URL_RECLAMO_AMBIENTAL}" target="_blank" rel="noopener" class="btn-ir-canal">
+        Ir al canal oficial de reclamos ↗
+      </a>
+    </div>
     <p class="reclamo-nota">
-      Pegalo en el canal oficial de reclamos ambientales de la Municipalidad de Rosario
-      (verificá el canal vigente antes de enviarlo: línea 147 / rosario.gob.ar).
+      Copiá el texto y pegalo ahí. Es el canal de reclamos ambientales de rosario.gob.ar;
+      verificá que sea el formulario correcto antes de enviarlo.
     </p>
   `;
   document

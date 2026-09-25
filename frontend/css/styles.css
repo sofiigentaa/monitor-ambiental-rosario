@@ -309,6 +309,21 @@ body {
   cursor: pointer;
 }
 
+.reclamo-acciones { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+
+.btn-ir-canal {
+  display: inline-block;
+  background: var(--verde);
+  color: #fff;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-size: 0.85rem;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.btn-ir-canal:hover { opacity: 0.9; }
+
 .btn-reporte:hover,
 #btn-calcular-riesgo:hover {
   background: var(--azul-oscuro);
