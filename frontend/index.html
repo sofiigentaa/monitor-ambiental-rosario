@@ -25,7 +25,16 @@
     </p>
   </header>
 
+  <nav class="tabs" id="tabs">
+    <button type="button" class="tab-btn is-active" data-tab="agua">🗺️ Agua</button>
+    <button type="button" class="tab-btn" data-tab="reportes">📢 Reportes ciudadanos</button>
+    <button type="button" class="tab-btn" data-tab="riesgo">🫁 Riesgo respiratorio</button>
+    <button type="button" class="tab-btn" data-tab="info">📖 Glosario</button>
+  </nav>
+
   <main class="layout">
+
+    <div class="tab-panel" data-tab-panel="agua">
 
     <section class="summary" id="summary">
       <div class="summary-card summary-card--verde" id="card-verde">
@@ -79,6 +88,10 @@
       <div id="detalle-contenido"></div>
     </section>
 
+    </div>
+
+    <div class="tab-panel" data-tab-panel="info" hidden>
+
     <section class="glosario">
       <h2>¿Qué significan estos parámetros?</h2>
       <div class="glosario__grid">
@@ -90,6 +103,10 @@
         <div><strong>Conductividad</strong><p>Sales y contaminantes disueltos. Cambios bruscos indican vertidos.</p></div>
       </div>
     </section>
+
+    </div>
+
+    <div class="tab-panel" data-tab-panel="reportes" hidden>
 
     <section class="reportes-ciudadanos">
       <h2>Reportá lo que ves o sentís</h2>
@@ -133,6 +150,10 @@
       <div id="reporte-confirmacion" class="reporte-confirmacion" hidden></div>
     </section>
 
+    </div>
+
+    <div class="tab-panel" data-tab-panel="riesgo" hidden>
+
     <section class="riesgo-respiratorio">
       <h2>Tu riesgo respiratorio en la zona</h2>
       <p class="riesgo-respiratorio__disclaimer">
@@ -149,6 +170,8 @@
       <button type="button" id="btn-calcular-riesgo">📍 Calcular mi riesgo acá</button>
       <div id="riesgo-resultado"></div>
     </section>
+
+    </div>
 
   </main>
 

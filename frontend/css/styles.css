@@ -48,6 +48,39 @@ body {
   opacity: 0.95;
 }
 
+.tabs {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--borde);
+  background: #fff;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 14px 12px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  color: #666;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tab-btn:hover { color: var(--texto); }
+
+.tab-btn.is-active {
+  color: var(--azul);
+  border-bottom-color: var(--azul);
+  font-weight: 600;
+}
+
+.tab-panel[hidden] { display: none; }
+
 .layout {
   max-width: 1200px;
   margin: 0 auto;

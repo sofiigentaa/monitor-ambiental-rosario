@@ -678,9 +678,32 @@ function initRiesgoRespiratorio() {
   });
 }
 
+function initTabs() {
+  const botones = [...document.querySelectorAll(".tab-btn")];
+  const paneles = [...document.querySelectorAll(".tab-panel")];
+
+  botones.forEach((boton) => {
+    boton.addEventListener("click", () => {
+      const tab = boton.dataset.tab;
+
+      botones.forEach((b) => b.classList.toggle("is-active", b === boton));
+      paneles.forEach((p) => {
+        p.hidden = p.dataset.tabPanel !== tab;
+      });
+
+      // El mapa de Leaflet calcula su tamaño con el contenedor visible; si
+      // se inicializo (o quedo) oculto por una pestaña, hay que refrescarlo.
+      if (tab === "agua" && mapa) {
+        setTimeout(() => mapa.invalidateSize(), 0);
+      }
+    });
+  });
+}
+
 initMapa();
 initFiltro();
 initReportesCiudadanos();
 initRiesgoRespiratorio();
+initTabs();
 cargarDatos();
 cargarReportes();
