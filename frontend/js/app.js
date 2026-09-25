@@ -1047,8 +1047,16 @@ function calcularYMostrarRiesgo(lat, lng) {
     datosHumo && datosHumo.estado === "ok" && datosHumo.pronostico.length ? datosHumo.pronostico[0] : null;
   const puntajeHumo = horaHumoActual ? horaHumoActual.score : 0;
 
+  // Componente de calidad de aire pronosticada (PM2.5/PM10, modelo CAMS via
+  // /api/aire): al igual que el humo, es un dato de ciudad entera (no
+  // hiperlocal), asi que se suma como un termino aparte, no reemplaza a los
+  // reportes comunitarios.
+  const PUNTAJE_AIRE_NIVEL = { buena: 0, moderada: 20, mala: 45 };
+  const nivelAireActual = datosAire && datosAire.estado === "ok" ? datosAire.nivel_actual : null;
+  const puntajeAire = nivelAireActual ? PUNTAJE_AIRE_NIVEL[nivelAireActual] || 0 : 0;
+
   const puntajeReportes = pesoSintomasTotal * 15 + brumaProm * 0.5;
-  const puntajeFinal = Math.min(100, Math.round((puntajeReportes + puntajeHumo * 0.6) * peso));
+  const puntajeFinal = Math.min(100, Math.round((puntajeReportes + puntajeHumo * 0.6 + puntajeAire) * peso));
 
   let nivel, mensaje;
   if (puntajeFinal >= 60) {
@@ -1065,14 +1073,18 @@ function calcularYMostrarRiesgo(lat, lng) {
   const detalleHumo = horaHumoActual
     ? ` y el pronóstico de humo por quemas en las islas (nivel ${horaHumoActual.nivel})`
     : "";
+  const detalleAire = nivelAireActual
+    ? ` y la calidad de aire pronosticada para la ciudad (nivel ${nivelAireActual}, PM2.5/PM10)`
+    : "";
 
   document.getElementById("riesgo-resultado").innerHTML = `
     <p class="riesgo-nivel riesgo-nivel--${nivel}">${mensaje}</p>
     <p class="riesgo-detalle">
       Basado en ${sintomas.length} reporte(s) de síntomas (ponderados según cuántos vecinos los
       confirmaron) y ${brumas.length} reporte(s) de bruma en un radio de ${radioKm * 1000}m en las
-      últimas 24hs${detalleHumo}. Esto es un indicador comunitario, no una medición oficial de
-      calidad de aire ni un diagnóstico médico.
+      últimas 24hs${detalleHumo}${detalleAire}. Los reportes son hiperlocales a este punto; el humo y
+      la calidad de aire son pronósticos para la ciudad entera. Esto es un indicador comunitario, no
+      una medición oficial de calidad de aire ni un diagnóstico médico.
     </p>
   `;
 }
@@ -1091,6 +1103,70 @@ function initRiesgoRespiratorio() {
       }
     );
   });
+}
+
+// ---- Calidad de aire pronosticada (PM2.5/PM10) ----
+// Ver backend/src/lib/aire.js: pronostico de modelo atmosferico (CAMS via
+// Open-Meteo), no una medicion local. Se usa tanto para mostrarse en la
+// pestaña "Riesgo respiratorio" como para sumarse al calculo de
+// calcularYMostrarRiesgo() de mas arriba.
+
+let datosAire = null;
+
+const TEXTO_NIVEL_AIRE = {
+  buena: "Buena",
+  moderada: "Moderada",
+  mala: "Mala"
+};
+
+async function cargarAire() {
+  try {
+    const res = await fetch(`${API_BASE}/aire`);
+    datosAire = await res.json();
+  } catch (err) {
+    console.error("No se pudo consultar la calidad de aire pronosticada", err);
+    datosAire = { estado: "datos_no_disponibles", mensaje: "No se pudo conectar con el backend." };
+  }
+  pintarAire(datosAire);
+}
+
+function pintarAire(data) {
+  const cont = document.getElementById("calidad-aire-contenido");
+  if (!cont) return;
+
+  if (!data || data.estado !== "ok") {
+    cont.innerHTML = `
+      <div class="calidad-aire-sin-datos">
+        <p>${(data && data.mensaje) || "No hay datos disponibles en este momento."}</p>
+      </div>
+    `;
+    return;
+  }
+
+  const actual = data.pronostico[0];
+  const proximas = data.pronostico.slice(1, 7); // proximas horas, para mostrar tendencia
+
+  const tendenciaHtml = proximas
+    .map(
+      (h) => `
+        <span class="detalle-badge badge--${h.nivel}" title="${formatearHora(h.hora)}hs">
+          ${formatearHora(h.hora)}
+        </span>
+      `
+    )
+    .join("");
+
+  cont.innerHTML = `
+    <div class="calidad-aire-nivel">
+      <span class="detalle-badge badge--${data.nivel_actual}">${TEXTO_NIVEL_AIRE[data.nivel_actual] || data.nivel_actual}</span>
+      <span>ahora (${formatearHora(actual.hora)}hs)</span>
+    </div>
+    <div class="calidad-aire-params">
+      <span>PM2.5: ${actual.pm2_5 != null ? actual.pm2_5.toFixed(1) + " µg/m³" : "s/d"}</span>
+      <span>PM10: ${actual.pm10 != null ? actual.pm10.toFixed(1) + " µg/m³" : "s/d"}</span>
+    </div>
+    ${proximas.length ? `<p class="mini-map-ayuda">Próximas horas:</p><div class="humo-timeline">${tendenciaHtml}</div>` : ""}
+  `;
 }
 
 // ---- Reciclaje ----
@@ -1524,5 +1600,6 @@ cargarDatos();
 cargarReportes();
 cargarTelegramCta();
 cargarHumo();
+cargarAire();
 cargarRio();
 cargarBalnearios();

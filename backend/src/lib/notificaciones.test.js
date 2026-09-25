@@ -29,6 +29,7 @@ describe("calcularEstadoActual", () => {
     });
     expect(estado).toEqual({
       humo_nivel: "alto",
+      aire_nivel: null,
       punto_cercano_id: "p1",
       punto_cercano_nombre: "Punto 1",
       punto_cercano_nivel: "rojo",
@@ -70,6 +71,27 @@ describe("calcularNotificaciones", () => {
     const estado = calcularEstadoActual(zona, { nivelHumo: "bajo", puntosAgua: [], balnearios: [] });
     const { mensajes } = calcularNotificaciones(zona, estado);
     expect(mensajes.some((m) => m.includes("humo"))).toBe(false);
+  });
+
+  test("notifica cuando la calidad de aire pronosticada pasa a mala", () => {
+    const zona = { ...ZONA_BASE, estadoNotificado: { aire_nivel: "moderada" } };
+    const estado = calcularEstadoActual(zona, { nivelAire: "mala", puntosAgua: [], balnearios: [] });
+    const { mensajes } = calcularNotificaciones(zona, estado);
+    expect(mensajes.some((m) => m.includes("aire"))).toBe(true);
+  });
+
+  test("no notifica de nuevo si el aire se mantiene en mala", () => {
+    const zona = { ...ZONA_BASE, estadoNotificado: { aire_nivel: "mala" } };
+    const estado = calcularEstadoActual(zona, { nivelAire: "mala", puntosAgua: [], balnearios: [] });
+    const { mensajes } = calcularNotificaciones(zona, estado);
+    expect(mensajes.some((m) => m.includes("aire"))).toBe(false);
+  });
+
+  test("no notifica aire si el nivel es buena/moderada aunque cambie", () => {
+    const zona = { ...ZONA_BASE, estadoNotificado: { aire_nivel: "buena" } };
+    const estado = calcularEstadoActual(zona, { nivelAire: "moderada", puntosAgua: [], balnearios: [] });
+    const { mensajes } = calcularNotificaciones(zona, estado);
+    expect(mensajes.some((m) => m.includes("aire"))).toBe(false);
   });
 
   test("notifica cuando cambia el nivel del punto de agua mas cercano", () => {

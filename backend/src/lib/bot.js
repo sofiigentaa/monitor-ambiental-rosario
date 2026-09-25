@@ -28,7 +28,7 @@ Comandos:
 /baja - Darte de baja (borra todas tus zonas)
 /ayuda - Ver este mensaje
 
-Te aviso cuando: haya riesgo de humo previsto en tu zona, cambie el nivel de un punto de agua cercano, se acumulen reportes ciudadanos confirmados cerca, o cambie el estado de un balneario. No mando avisos repetidos por lo mismo: solo cuando algo cambia.`;
+Te aviso cuando: haya riesgo de humo previsto en tu zona, la calidad de aire pronosticada pase a mala, cambie el nivel de un punto de agua cercano, se acumulen reportes ciudadanos confirmados cerca, o cambie el estado de un balneario. No mando avisos repetidos por lo mismo: solo cuando algo cambia.`;
 
 // chatId -> { lat, lng } de una ubicacion recibida, esperando que el proximo
 // mensaje de texto le ponga nombre.
@@ -159,19 +159,27 @@ async function revisarTodasLasZonas(token) {
   // Requires tardios para no crear dependencias circulares con modulos que
   // a su vez podrian (en el futuro) importar cosas de bot.js.
   const { obtenerAlertaHumo } = require("./humo");
+  const { obtenerCalidadAire } = require("./aire");
   const { todosLosPuntosEvaluados } = require("./puntos");
   const { listarBalnearios } = require("./balnearios");
   const { hayAlertaTemprana } = require("./reportes");
 
-  const datosHumo = await obtenerAlertaHumo();
+  const [datosHumo, datosAire] = await Promise.all([obtenerAlertaHumo(), obtenerCalidadAire()]);
   const nivelHumo = datosHumo.estado === "ok" ? datosHumo.nivel_actual : null;
+  const nivelAire = datosAire.estado === "ok" ? datosAire.nivel_actual : null;
   const puntosAgua = todosLosPuntosEvaluados();
   const balnearios = listarBalnearios().balnearios;
 
   for (const { chatId, zonas } of todasLasSuscripciones()) {
     for (const zona of zonas) {
       const hayReportesAlerta = hayAlertaTemprana(zona.lat, zona.lng);
-      const estadoActual = calcularEstadoActual(zona, { nivelHumo, puntosAgua, balnearios, hayReportesAlerta });
+      const estadoActual = calcularEstadoActual(zona, {
+        nivelHumo,
+        nivelAire,
+        puntosAgua,
+        balnearios,
+        hayReportesAlerta
+      });
       const { mensajes, nuevoEstado } = calcularNotificaciones(zona, estadoActual);
       zona.estadoNotificado = nuevoEstado;
 

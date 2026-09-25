@@ -11,7 +11,18 @@ App web para el desarrollo sostenible y el cuidado del ambiente en Rosario:
 - Alerta de forma anticipada si el humo de quemas en las islas del Delta tiene
   chances de llegar a la ciudad, combinando focos de calor satelitales con el
   pronóstico de viento.
+- Muestra la calidad de aire pronosticada (PM2.5/PM10, modelo CAMS) y la suma al
+  cálculo de riesgo respiratorio.
+- Muestra la altura del río Paraná y un semáforo de balnearios.
+- Genera un expediente colectivo a partir de reportes ciudadanos confirmados, listo
+  para copiar/imprimir.
+- Manda alertas por Telegram (humo, calidad de aire, puntos de agua, reportes,
+  balnearios) a quien se suscriba con una zona.
 - Ayuda a reciclar bien (dónde y qué) y a entender el impacto ambiental de no hacerlo.
+
+Es una app **solo software**: no depende de ningún sensor ni dispositivo propio, todo
+sale de fuentes oficiales gratuitas, reportes ciudadanos o pronósticos de modelos
+atmosféricos ya existentes.
 
 ## Arquitectura
 
@@ -28,21 +39,39 @@ App web para el desarrollo sostenible y el cuidado del ambiente en Rosario:
   en convenio con la FCEIA-UNR). No es tiempo real: son muestreos mensuales.
 - **Datos de humo**: en vivo, vía NASA FIRMS (focos de calor) y Open-Meteo (viento),
   ver [Alerta de humo](#alerta-de-humo-por-quemas-en-las-islas) más abajo.
+- **Datos de calidad de aire**: en vivo, vía Open-Meteo Air Quality (modelo CAMS,
+  PM2.5/PM10), ver [Calidad de aire pronosticada](#calidad-de-aire-pronosticada) más
+  abajo.
 
 ```
 monitor-ambiental-rosario/
 ├── backend/
-│   ├── .env.example         # variables de entorno (FIRMS_MAP_KEY)
+│   ├── .env.example         # variables de entorno (FIRMS_MAP_KEY, TELEGRAM_*)
 │   ├── src/
-│   │   ├── data/                 # datasets semilla de agua (JSON)
+│   │   ├── data/                 # datasets semilla de agua y balnearios (JSON)
 │   │   ├── lib/
 │   │   │   ├── ica.js             # nivel de alerta de agua
 │   │   │   ├── reportes.js        # reportes ciudadanos + alerta temprana
-│   │   │   └── humo.js            # alerta de humo (FIRMS + viento)
+│   │   │   ├── humo.js            # alerta de humo (FIRMS + viento)
+│   │   │   ├── aire.js            # calidad de aire pronosticada (PM2.5/PM10, CAMS)
+│   │   │   ├── rio.js             # altura del río Paraná (scraping Prefectura Naval)
+│   │   │   ├── balnearios.js      # semáforo de balnearios (dataset a mano)
+│   │   │   ├── exportar.js        # datos abiertos (CSV/JSON)
+│   │   │   ├── expediente.js      # expediente colectivo a partir de reportes
+│   │   │   ├── suscripciones.js   # zonas guardadas por chat de Telegram
+│   │   │   ├── notificaciones.js  # lógica pura de qué avisar ante un cambio
+│   │   │   ├── telegram.js        # llamadas HTTP crudas a la API de Telegram
+│   │   │   └── bot.js             # orquestación del bot (polling + chequeo periódico)
 │   │   ├── routes/
 │   │   │   ├── api.js             # endpoints de puntos de agua
 │   │   │   ├── reportes.js        # endpoints de reportes ciudadanos
-│   │   │   └── humo.js            # endpoint de alerta de humo
+│   │   │   ├── humo.js            # endpoint de alerta de humo
+│   │   │   ├── aire.js            # endpoint de calidad de aire pronosticada
+│   │   │   ├── rio.js             # endpoint de altura del río
+│   │   │   ├── balnearios.js      # endpoint de semáforo de balnearios
+│   │   │   ├── exportar.js        # endpoints de datos abiertos
+│   │   │   ├── expediente.js      # endpoint de expediente colectivo
+│   │   │   └── telegram.js        # endpoint de info del bot (para el botón web)
 │   │   └── server.js
 │   ├── scripts/actualizar-datos.js   # punto de extensión para datos de agua en vivo
 │   └── package.json
@@ -70,23 +99,40 @@ Si preferís servir el frontend aparte (por ejemplo con `npx serve frontend`),
 `frontend/js/app.js` ya detecta si no está en `localhost` y apunta a `/api`
 relativo — ajustá `API_BASE` en ese archivo según cómo lo despliegues.
 
-Todas las funcionalidades excepto la alerta de humo funcionan sin ninguna
-configuración extra. Para la alerta de humo hace falta una variable de entorno
-gratuita, ver la sección de abajo.
+Todas las funcionalidades funcionan sin ninguna configuración extra, **excepto** la
+alerta de humo (necesita una clave gratuita) y las alertas por Telegram (necesitan un
+bot propio, también gratuito). La calidad de aire pronosticada (`/api/aire`) no
+necesita ninguna variable de entorno: Open-Meteo Air Quality es gratis y sin API key.
 
-### Configurar la alerta de humo (`FIRMS_MAP_KEY`)
+### Variables de entorno (`backend/.env.example`)
 
-1. Pedí una clave gratuita (toma un minuto, solo con un email) en
-   [firms.modaps.eosdis.nasa.gov/api/map_key](https://firms.modaps.eosdis.nasa.gov/api/map_key/).
-2. Copiá `backend/.env.example` a `backend/.env` y pegá la clave:
+| Variable | Obligatoria | Para qué sirve | Cómo conseguirla |
+|---|---|---|---|
+| `FIRMS_MAP_KEY` | No (sin ella, `/api/humo` responde `datos_no_disponibles`) | Focos de calor satelitales (NASA FIRMS), para la alerta de humo | Gratis, con un email, en [firms.modaps.eosdis.nasa.gov/api/map_key](https://firms.modaps.eosdis.nasa.gov/api/map_key/) |
+| `TELEGRAM_BOT_TOKEN` | No (sin ella, el bot de Telegram directamente no arranca) | Autenticación del bot ante la API de Telegram | Gratis, hablándole a [@BotFather](https://t.me/BotFather) (`/newbot`) |
+| `TELEGRAM_BOT_USERNAME` | No (solo afecta el link del botón "Recibí alertas") | Arma el link `https://t.me/<usuario>` del botón en la web | El `@usuario` que le pusiste al bot en BotFather |
+| `PORT` | No (default `3001`) | Puerto donde escucha el backend | — |
+
+Pasos para configurar humo y/o Telegram:
+
+1. Copiá `backend/.env.example` a `backend/.env`.
+2. Pegá las claves que consigas (podés cargar solo una de las dos, son independientes):
    ```
    FIRMS_MAP_KEY=tu_clave_aca
+   TELEGRAM_BOT_TOKEN=tu_token_aca
+   TELEGRAM_BOT_USERNAME=tu_bot_de_telegram
    ```
 3. Reiniciá el backend (`npm start`).
 
-Sin esta variable, el resto de la app funciona igual — `/api/humo` responde
-`{"estado": "datos_no_disponibles", ...}` con un mensaje explicativo, en vez de
-romper o mostrar un error.
+**En Render (o cualquier PaaS):** las variables de entorno se cargan desde el panel del
+servicio, no desde `backend/.env` (ese archivo es solo para desarrollo local y está en
+`.gitignore`) — no hace falta ningún paso extra además de pegarlas ahí y hacer
+deploy/restart.
+
+Sin `FIRMS_MAP_KEY`, `/api/humo` responde `{"estado": "datos_no_disponibles", ...}` con
+un mensaje explicativo, en vez de romper o mostrar un error. Sin `TELEGRAM_BOT_TOKEN`,
+el bot simplemente no arranca (se loguea un aviso en la consola del servidor) y el
+botón "📲 Recibí alertas en Telegram" de la web queda oculto.
 
 ## Endpoints del API
 
@@ -102,6 +148,7 @@ romper o mostrar un error.
 | POST   | `/api/reportes/:id/confirmar` | Otro vecino confirma un reporte existente ("yo también lo noto") |
 | GET    | `/api/reportes/alerta`  | Alerta temprana comunitaria cerca de un punto (`?lat=&lng=`)    |
 | GET    | `/api/humo`             | Focos de calor, pronóstico horario de riesgo de humo, nivel actual y próxima ventana de riesgo |
+| GET    | `/api/aire`             | Calidad de aire pronosticada (PM2.5/PM10, modelo CAMS): pronóstico horario, nivel actual (buena/moderada/mala) |
 | GET    | `/api/exportar/json`    | Datos abiertos: puntos de agua evaluados, en JSON               |
 | GET    | `/api/exportar/csv`     | Datos abiertos: puntos de agua evaluados, en CSV (una fila por punto) |
 | GET    | `/api/rio`              | Altura del río Paraná en Rosario, tendencia y niveles de alerta/evacuación |
@@ -179,9 +226,12 @@ con una señal comunitaria explícitamente no-oficial:
   menos un vecino — así un reporte erróneo o mal intencionado aislado no dispara
   una alerta por sí solo.
 - **Riesgo respiratorio** (pestaña "🫁 Riesgo respiratorio"): combina los reportes
-  cercanos (síntomas + bruma, últimas 24hs, 800m) y el pronóstico de humo (ver abajo)
-  en un puntaje 0-100, ponderado por perfil de salud (general/asma/EPOC/niño
-  deportista). No es un diagnóstico médico ni reemplaza indicación profesional.
+  cercanos (síntomas + bruma, últimas 24hs, 800m), el pronóstico de humo y la calidad
+  de aire pronosticada (ver [más abajo](#calidad-de-aire-pronosticada)) en un puntaje
+  0-100, ponderado por perfil de salud (general/asma/EPOC/niño deportista). El texto
+  del resultado aclara qué parte del puntaje viene de reportes hiperlocales a ese punto
+  y cuál de los pronósticos de ciudad entera (humo, aire). No es un diagnóstico médico
+  ni reemplaza indicación profesional.
 
 ## Alerta de humo por quemas en las islas
 
@@ -215,6 +265,37 @@ se puede agotar por tráfico ajeno, no solo por esta app (visto en producción:
 `datos_no_disponibles` con el detalle del error — es el comportamiento esperado, no un
 bug. Se resuelve solo (el cupo resetea diariamente) o de forma definitiva con un plan de
 Render con IP dedicada.
+
+## Calidad de aire pronosticada
+
+Pestaña "🫁 Riesgo respiratorio", debajo del resultado personal. Muestra el pronóstico
+de **PM2.5 y PM10** (`backend/src/lib/aire.js`) vía
+[Open-Meteo Air Quality](https://open-meteo.com/en/docs/air-quality-api) (modelo CAMS —
+Copernicus Atmosphere Monitoring Service — de la Unión Europea, resolución de grilla de
+~10km), gratis y sin API key.
+
+**Importante — qué es y qué NO es:** esto es un **pronóstico de modelo atmosférico**
+para Rosario en general, no una medición local ni de sensores propios. No hay ningún
+sensor físico conectado a este proyecto (la app es solo software, como el resto de sus
+funcionalidades).
+
+Los valores de PM2.5/PM10 (µg/m³) se traducen a una escala simple de 3 niveles, con
+umbrales basados en las categorías del **AQI de la EPA (EE.UU.)** — una referencia
+internacional de uso común, aclarado que **no es una normativa argentina**:
+
+- 🟢 **Buena** — PM2.5 ≤ 12 µg/m³ y PM10 ≤ 54 µg/m³.
+- 🟡 **Moderada** — PM2.5 ≤ 35.4 µg/m³ y PM10 ≤ 154 µg/m³.
+- 🔴 **Mala** — por encima de esos valores (el peor de los dos parámetros manda).
+
+Este mismo módulo lo reutiliza `humo.js` como complemento opcional del pronóstico de
+humo (evita pegarle dos veces a la misma API externa — ver la limitación de rate limit
+más abajo) y `bot.js` para avisar por Telegram cuando el nivel pasa a "mala" en la
+próxima hora. Se cachea 45 minutos en memoria, mismo criterio que `humo.js`/`rio.js`.
+
+**Limitación conocida:** Open-Meteo rate-limita por IP (ver la limitación ya documentada
+en la sección de [Alerta de humo](#alerta-de-humo-por-quemas-en-las-islas) — aplica
+igual acá, es la misma familia de APIs). Cuando pasa, `/api/aire` responde
+`datos_no_disponibles` con el detalle del error.
 
 ## Río y playas
 
@@ -269,10 +350,15 @@ el link del botón. Sin `TELEGRAM_BOT_TOKEN`, el bot simplemente no arranca.
 
 **Avisos:** cada zona guarda un "último estado notificado" y solo avisa ante un
 *cambio* (no en cada chequeo periódico, que corre cada 15 minutos) — riesgo de humo
-que sube a moderado/alto, cambio de nivel del punto de agua más cercano (hasta 3km),
-aparición de reportes ciudadanos confirmados cerca (reutiliza `hayAlertaTemprana` de
-`reportes.js`), o cambio de estado de cualquier balneario. La primera vez que se
-revisa una zona nueva no dispara avisos — solo establece la base para comparar después.
+que sube a moderado/alto, calidad de aire pronosticada que pasa a "mala" (ver
+[Calidad de aire pronosticada](#calidad-de-aire-pronosticada)), cambio de nivel del
+punto de agua más cercano (hasta 3km), aparición de reportes ciudadanos confirmados
+cerca (reutiliza `hayAlertaTemprana` de `reportes.js`), o cambio de estado de cualquier
+balneario. La primera vez que se revisa una zona nueva no dispara avisos — solo
+establece la base para comparar después. El humo y el aire son datos de ciudad entera
+(no por zona), así que todos los suscriptos reciben el mismo aviso de humo/aire cuando
+corresponde; el punto de agua más cercano y los reportes sí son específicos de cada
+zona guardada.
 
 Persistencia en memoria, igual que los reportes ciudadanos (se pierde si el proceso
 se reinicia).
@@ -347,10 +433,62 @@ de campo. No reemplaza una inspección o medición oficial.
   librería externa).
 - ✅ Fase 4 — expediente colectivo a partir de reportes confirmados agrupados,
   documento imprimible generado en el cliente.
-- 🟡 Fase 5 — calidad de aire pronosticada (PM2.5/PM10, Open-Meteo) integrada
-  a la pestaña de riesgo respiratorio.
+- ✅ Fase 5 — calidad de aire pronosticada (PM2.5/PM10, Open-Meteo/CAMS)
+  integrada a la pestaña de riesgo respiratorio (score + explicación de a qué
+  fuente corresponde cada parte) y a las alertas del bot de Telegram.
 - 🟡 Persistencia real (hoy en memoria) para reportes ciudadanos y
   suscripciones de Telegram.
+
+## Limitaciones conocidas
+
+Resumen de las limitaciones ya documentadas en detalle en cada sección de arriba:
+
+- **Persistencia en memoria**: reportes ciudadanos y suscripciones de Telegram se
+  pierden si el proceso del backend se reinicia (deploy nuevo, caída, restart manual).
+  No hay base de datos.
+- **Rate limit de Open-Meteo**: `/api/humo` (viento) y `/api/aire` (PM2.5/PM10)
+  dependen de la misma familia de APIs gratuitas de Open-Meteo, que limitan por IP. En
+  hostings con IP de salida compartida (como el plan free de Render) el cupo diario se
+  puede agotar por tráfico de otras apps, no solo la propia — se resuelve solo al otro
+  día. Cuando pasa, esos endpoints responden `datos_no_disponibles`, no rompen.
+- **Scraping de Prefectura Naval**: `/api/rio` no tiene una API JSON oficial, así que
+  scrapea HTML — frágil ante cambios de esa página, y sujeto a las caídas
+  intermitentes del propio sitio `.gob.ar`.
+- **Balnearios sin fuente automática**: no existe un dataset público de aptitud para
+  baño en formato consumible, así que `balnearios.json` se carga y actualiza a mano.
+- **Calidad de aire es pronóstico de modelo, no medición local**: PM2.5/PM10 vienen del
+  modelo CAMS (grilla ~10km) para Rosario en general, no de un sensor en la zona
+  puntual que se está consultando.
+- **Datos de agua desactualizados**: el dataset semilla es de mayo 2024 y no se
+  actualiza solo (ver Fase 4 del monitor de agua, más abajo).
+- **Coordenadas aproximadas** para los puntos del Ludueña (ver "Nota importante").
+
+## Pendiente o que requiere trabajo manual
+
+Para quien retome este proyecto, en orden aproximado de impacto:
+
+1. **Conectar `scripts/actualizar-datos.js` a una fuente en vivo** para los datos de
+   agua (Fase 4 del monitor de agua): hoy es un punto de extensión sin implementar,
+   falta confirmar el `resource_id` del portal DKAN de Rosario o definir un proceso
+   para cargar PDFs nuevos a mano.
+2. **Migrar a una base de datos real** (reportes ciudadanos y suscripciones de
+   Telegram): hoy todo vive en memoria del proceso backend y se pierde en cada
+   reinicio/deploy. Es el cambio de mayor impacto para producción real.
+3. **Cargar datos estructurados del arroyo Saladillo y el resto del Paraná** (hoy
+   `sin_datos_estructurados`) y mejorar la precisión de las coordenadas del dataset de
+   agua (ver `nota_coordenadas`), idealmente geo-referenciando con Infomapa Rosario.
+4. **Conseguir una fuente automatizable de aptitud de baño** para balnearios (hoy
+   dataset a mano, sin API pública conocida) — requiere gestión con la Municipalidad,
+   no es un problema técnico.
+5. **Plan de Render con IP dedicada** (o mover a otro hosting) si el rate limit de
+   Open-Meteo por IP compartida se vuelve un problema frecuente en producción.
+6. **Revisar el scraper de Prefectura Naval periódicamente**: si la Municipalidad o
+   Prefectura publican en algún momento una API JSON oficial de altura del río, migrar
+   a esa fuente sería más robusto que el scraping HTML actual.
+7. **Configurar las variables de entorno en Render** (`FIRMS_MAP_KEY`,
+   `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`) si todavía no están cargadas ahí —
+   sin esto, humo y Telegram quedan deshabilitados en producción aunque funcionen en
+   local.
 
 ## Nota importante
 

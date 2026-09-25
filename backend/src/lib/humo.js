@@ -28,6 +28,8 @@
  * 5. Esa suma se traduce en un nivel: sin_riesgo / bajo / moderado / alto.
  */
 
+const { obtenerCalidadAire } = require("./aire");
+
 const BOUNDING_BOX_DELTA = {
   // Islas del delta frente a Rosario (lado entrerriano), donde se concentran
   // historicamente los focos de quema. Ajustable si hace falta cubrir mas
@@ -47,7 +49,6 @@ const FUENTES_FIRMS = ["VIIRS_SNPP_NRT", "VIIRS_NOAA20_NRT", "MODIS_NRT"];
 const DIAS_FIRMS = 2; // ultimos 1-2 dias, focos mas viejos ya no son relevantes
 
 const OPEN_METEO_FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
-const OPEN_METEO_AIR_QUALITY_URL = "https://air-quality-api.open-meteo.com/v1/air-quality";
 
 const TOLERANCIA_GRADOS = 30; // cono de tolerancia alrededor de la direccion de transporte
 const RADIO_MAX_KM = 120; // mas alla de esto, en este modelo simplificado, no se considera relevante
@@ -204,24 +205,20 @@ async function obtenerPronosticoViento() {
   }));
 }
 
-// Complemento opcional (PM2.5 pronosticado, modelo CAMS). Si falla, no
-// interrumpe el resto: devuelve null y el pronostico sigue sin ese dato.
+// Complemento opcional (PM2.5 pronosticado, modelo CAMS). Reutiliza
+// backend/src/lib/aire.js (que ya tiene su propia cache) en vez de pegarle a
+// Open-Meteo Air Quality por su cuenta - esa API rate-limita por IP, y
+// duplicar la consulta acá arriesgaba agotar el cupo el doble de rapido.
+// Si aire.js no pudo conseguir el dato, devuelve null y el pronostico de
+// humo sigue funcionando igual, sin ese complemento.
 async function obtenerPm25Pronostico() {
-  try {
-    const url =
-      `${OPEN_METEO_AIR_QUALITY_URL}?latitude=${REFERENCIA_CIUDAD.lat}&longitude=${REFERENCIA_CIUDAD.lng}` +
-      `&hourly=pm2_5&timezone=America%2FArgentina%2FBuenos_Aires&forecast_days=2`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    const mapa = {};
-    data.hourly.time.forEach((hora, i) => {
-      mapa[hora] = data.hourly.pm2_5[i];
-    });
-    return mapa;
-  } catch {
-    return null;
-  }
+  const airData = await obtenerCalidadAire();
+  if (airData.estado !== "ok") return null;
+  const mapa = {};
+  airData.pronostico.forEach((h) => {
+    mapa[h.hora] = h.pm2_5;
+  });
+  return mapa;
 }
 
 // Peso de un foco alineado para una hora dada: mas peso cuanto mas centrado

@@ -249,6 +249,9 @@ body {
 .badge--amarillo { background: var(--amarillo-bg); color: var(--amarillo); }
 .badge--rojo { background: var(--rojo-bg); color: var(--rojo); }
 .badge--sin_datos { background: var(--gris-bg); color: var(--gris); }
+.badge--buena { background: var(--verde-bg); color: var(--verde); }
+.badge--moderada { background: var(--amarillo-bg); color: var(--amarillo); }
+.badge--mala { background: var(--rojo-bg); color: var(--rojo); }
 
 .detalle-params {
   display: grid;
@@ -444,6 +447,39 @@ body {
 .riesgo-nivel--alto { background: var(--rojo-bg); color: var(--rojo); }
 
 .riesgo-detalle { font-size: 0.78rem; color: #777; }
+
+.calidad-aire {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--borde);
+}
+
+.calidad-aire h3 { margin: 0 0 6px; font-size: 1rem; }
+
+.calidad-aire__disclaimer { font-size: 0.78rem; color: #777; margin: 0 0 10px; }
+
+.calidad-aire-nivel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.calidad-aire-params {
+  display: flex;
+  gap: 16px;
+  font-size: 0.85rem;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+.calidad-aire-sin-datos {
+  background: var(--gris-bg);
+  color: var(--gris);
+  border-radius: 8px;
+  padding: 14px;
+  font-size: 0.88rem;
+}
 
 .mini-map {
   height: 220px;

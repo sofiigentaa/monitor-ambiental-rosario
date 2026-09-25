@@ -39,7 +39,7 @@ function puntoAguaMasCercano(zona, puntosAgua) {
 // Arma el estado "actual" de una zona a partir de los datos ya calculados de
 // cada funcionalidad (el llamador se encarga de conseguirlos: humo, agua,
 // balnearios, alerta temprana de reportes).
-function calcularEstadoActual(zona, { nivelHumo, puntosAgua, balnearios, hayReportesAlerta }) {
+function calcularEstadoActual(zona, { nivelHumo, nivelAire, puntosAgua, balnearios, hayReportesAlerta }) {
   const cercano = puntoAguaMasCercano(zona, puntosAgua || []);
   const balneariosEstado = {};
   (balnearios || []).forEach((b) => {
@@ -48,6 +48,7 @@ function calcularEstadoActual(zona, { nivelHumo, puntosAgua, balnearios, hayRepo
 
   return {
     humo_nivel: nivelHumo || "sin_riesgo",
+    aire_nivel: nivelAire || null,
     punto_cercano_id: cercano ? cercano.id : null,
     punto_cercano_nombre: cercano ? cercano.nombre : null,
     punto_cercano_nivel: cercano ? cercano.nivel_alerta : null,
@@ -57,6 +58,7 @@ function calcularEstadoActual(zona, { nivelHumo, puntosAgua, balnearios, hayRepo
 }
 
 const NIVELES_RIESGO_HUMO = ["moderado", "alto"];
+const NIVEL_RIESGO_AIRE = "mala"; // unico nivel de aire.js que amerita avisar
 
 function calcularNotificaciones(zona, estadoActual) {
   const anterior = zona.estadoNotificado || {};
@@ -70,6 +72,15 @@ function calcularNotificaciones(zona, estadoActual) {
     ) {
       mensajes.push(
         `🔥 Riesgo de humo *${estadoActual.humo_nivel}* previsto cerca de tu zona "${zona.nombre}". Revisá la pestaña "Alerta de humo".`
+      );
+    }
+
+    if (
+      estadoActual.aire_nivel === NIVEL_RIESGO_AIRE &&
+      anterior.aire_nivel !== estadoActual.aire_nivel
+    ) {
+      mensajes.push(
+        `🌫️ Calidad de aire pronosticada *mala* (PM2.5/PM10) para tu zona "${zona.nombre}". Revisá la pestaña "Riesgo respiratorio".`
       );
     }
 
