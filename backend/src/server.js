@@ -1,8 +1,11 @@
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const apiRouter = require("./routes/api");
 const reportesRouter = require("./routes/reportes");
+const humoRouter = require("./routes/humo");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -12,6 +15,7 @@ app.use(express.json());
 
 app.use("/api", apiRouter);
 app.use("/api/reportes", reportesRouter);
+app.use("/api/humo", humoRouter);
 
 // Sirve el frontend hardcodeado directamente desde el backend (útil para
 // levantar todo con un solo comando en desarrollo/demo).

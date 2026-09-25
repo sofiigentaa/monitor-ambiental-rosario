@@ -25,10 +25,16 @@
     </p>
   </header>
 
+  <div id="banner-humo" class="banner-humo" hidden>
+    <span id="banner-humo-texto"></span>
+    <button type="button" id="banner-humo-ver" class="banner-humo__boton">Ver detalle</button>
+  </div>
+
   <nav class="tabs" id="tabs">
     <button type="button" class="tab-btn is-active" data-tab="agua">🗺️ Agua</button>
     <button type="button" class="tab-btn" data-tab="reportes">📢 Reportes ciudadanos</button>
     <button type="button" class="tab-btn" data-tab="riesgo">🫁 Riesgo respiratorio</button>
+    <button type="button" class="tab-btn" data-tab="humo">🔥 Alerta de humo</button>
     <button type="button" class="tab-btn" data-tab="reciclaje">♻️ Reciclaje</button>
     <button type="button" class="tab-btn" data-tab="info">📖 Glosario</button>
   </nav>
@@ -59,6 +65,10 @@
     <section class="content">
       <div class="map-wrap">
         <div id="map"></div>
+        <label class="map-toggle-focos">
+          <input type="checkbox" id="toggle-focos-calor" />
+          🔥 Mostrar focos de calor de las islas (últimos días, NASA FIRMS)
+        </label>
         <p class="map-caption">
           Los colores muestran el nivel de alerta calculado a partir de la última medición
           oficial disponible de cada punto. No es un monitoreo en tiempo real.
@@ -174,6 +184,24 @@
       <p class="mini-map-ayuda">o tocá el mapa de abajo para elegir el punto a evaluar</p>
       <div class="mini-map" id="mapa-riesgo"></div>
       <div id="riesgo-resultado"></div>
+    </section>
+
+    </div>
+
+    <div class="tab-panel" data-tab-panel="humo" hidden>
+
+    <section class="alerta-humo">
+      <h2>🔥 Alerta de humo por quemas en las islas</h2>
+      <p class="alerta-humo__disclaimer">
+        Estimación propia combinando focos de calor satelitales (NASA FIRMS) con el pronóstico
+        de viento (Open-Meteo): calcula si el humo de algún foco activo en el delta tiene
+        chances de llegar a Rosario, no es un modelo de dispersión atmosférica oficial ni
+        reemplaza fuentes oficiales o indicación médica.
+      </p>
+
+      <div id="humo-contenido">
+        <p class="panel__loading">Consultando focos de calor y viento…</p>
+      </div>
     </section>
 
     </div>

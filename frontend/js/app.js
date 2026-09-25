@@ -652,8 +652,16 @@ function calcularYMostrarRiesgo(lat, lng) {
     ? brumas.reduce((acc, r) => acc + (r.bruma_estimada || 0), 0) / brumas.length
     : 0;
 
-  const puntajeBase = sintomas.length * 15 + brumaProm * 0.5;
-  const puntajeFinal = Math.min(100, Math.round(puntajeBase * peso));
+  // Componente de humo por quemas en las islas (pronostico, no reporte
+  // ciudadano): usa la hora "actual" del pronostico de /api/humo si esta
+  // disponible. Se suma con menos peso que los reportes porque es un dato
+  // de ciudad entera, no hiperlocal como los reportes cercanos al punto.
+  const horaHumoActual =
+    datosHumo && datosHumo.estado === "ok" && datosHumo.pronostico.length ? datosHumo.pronostico[0] : null;
+  const puntajeHumo = horaHumoActual ? horaHumoActual.score : 0;
+
+  const puntajeReportes = sintomas.length * 15 + brumaProm * 0.5;
+  const puntajeFinal = Math.min(100, Math.round((puntajeReportes + puntajeHumo * 0.6) * peso));
 
   let nivel, mensaje;
   if (puntajeFinal >= 60) {
@@ -667,12 +675,16 @@ function calcularYMostrarRiesgo(lat, lng) {
     mensaje = "No hay señales comunitarias recientes de riesgo respiratorio en esta zona.";
   }
 
+  const detalleHumo = horaHumoActual
+    ? ` y el pronóstico de humo por quemas en las islas (nivel ${horaHumoActual.nivel})`
+    : "";
+
   document.getElementById("riesgo-resultado").innerHTML = `
     <p class="riesgo-nivel riesgo-nivel--${nivel}">${mensaje}</p>
     <p class="riesgo-detalle">
       Basado en ${sintomas.length} reporte(s) de síntomas y ${brumas.length} reporte(s) de bruma
-      en un radio de ${radioKm * 1000}m en las últimas 24hs. Esto es un indicador comunitario,
-      no una medición oficial de calidad de aire ni un diagnóstico médico.
+      en un radio de ${radioKm * 1000}m en las últimas 24hs${detalleHumo}. Esto es un indicador
+      comunitario, no una medición oficial de calidad de aire ni un diagnóstico médico.
     </p>
   `;
 }
@@ -799,6 +811,156 @@ function initReciclaje() {
   ).join("");
 }
 
+// ---- Alerta de humo por quemas en las islas ----
+// Ver backend/src/lib/humo.js para el detalle del calculo (estimacion propia
+// combinando focos de calor satelitales + pronostico de viento, no es un
+// modelo de dispersion oficial).
+
+let datosHumo = null;
+let focosCalorMarcadores = [];
+
+const TEXTO_NIVEL_HUMO = {
+  sin_riesgo: "Sin riesgo de humo previsto",
+  bajo: "Riesgo bajo de humo",
+  moderado: "Riesgo moderado de humo",
+  alto: "Riesgo alto de humo"
+};
+
+function formatearHora(horaIso) {
+  // Open-Meteo ya devuelve la hora en el huso horario de Argentina.
+  const partes = horaIso.split("T");
+  return partes[1] ? partes[1].slice(0, 5) : horaIso;
+}
+
+async function cargarHumo() {
+  try {
+    const res = await fetch(`${API_BASE}/humo`);
+    datosHumo = await res.json();
+  } catch (err) {
+    console.error("No se pudo consultar la alerta de humo", err);
+    datosHumo = { estado: "datos_no_disponibles", mensaje: "No se pudo conectar con el backend." };
+  }
+  pintarHumo(datosHumo);
+  actualizarBannerHumo(datosHumo);
+  pintarFocosCalorEnMapa(document.getElementById("toggle-focos-calor").checked);
+}
+
+function pintarHumo(data) {
+  const cont = document.getElementById("humo-contenido");
+
+  if (!data || data.estado !== "ok") {
+    cont.innerHTML = `
+      <div class="humo-sin-datos">
+        <p>${(data && data.mensaje) || "No hay datos disponibles en este momento."}</p>
+      </div>
+    `;
+    return;
+  }
+
+  const ventana = data.proxima_ventana_riesgo;
+  const ventanaHtml = ventana
+    ? `
+    <div class="humo-ventana">
+      🕒 Próxima ventana de riesgo: <strong>${formatearHora(ventana.desde)} a ${formatearHora(ventana.hasta)}</strong>
+      (nivel ${ventana.nivel_max})${ventana.zona_expuesta ? `, sobre todo en <strong>${ventana.zona_expuesta}</strong>` : ""}.
+    </div>
+  `
+    : `<div class="humo-ventana">No se detecta una ventana de riesgo moderado/alto en las próximas 48hs.</div>`;
+
+  const etiquetas = data.pronostico
+    .map((h, i) => (i % 3 === 0 ? `<span>${formatearHora(h.hora)}</span>` : `<span></span>`))
+    .join("");
+
+  const barras = data.pronostico
+    .map(
+      (h) => `
+      <div class="humo-timeline__hora" title="${formatearHora(h.hora)} - ${TEXTO_NIVEL_HUMO[h.nivel]}${
+        h.zona_expuesta ? " - " + h.zona_expuesta : ""
+      }">
+        <div class="humo-timeline__barra humo-timeline__barra--${h.nivel}"></div>
+      </div>
+    `
+    )
+    .join("");
+
+  cont.innerHTML = `
+    <div class="humo-nivel-actual humo-nivel-actual--${data.nivel_actual}">
+      ${data.nivel_actual === "alto" ? "🔴" : data.nivel_actual === "moderado" ? "🟡" : "🟢"}
+      ${TEXTO_NIVEL_HUMO[data.nivel_actual]}
+    </div>
+    ${ventanaHtml}
+    <p><strong>Próximas horas:</strong></p>
+    <div class="humo-timeline__etiquetas">${etiquetas}</div>
+    <div class="humo-timeline">${barras}</div>
+    <p class="humo-focos-lista">
+      ${data.focos.length} foco(s) de calor detectado(s) en las islas en los últimos días
+      (fuente: NASA FIRMS). Se pueden ver en el mapa desde la pestaña "Agua"
+      activando "Mostrar focos de calor".
+    </p>
+  `;
+}
+
+function actualizarBannerHumo(data) {
+  const banner = document.getElementById("banner-humo");
+  const texto = document.getElementById("banner-humo-texto");
+
+  if (!data || data.estado !== "ok") {
+    banner.hidden = true;
+    return;
+  }
+
+  const relevante = ["moderado", "alto"];
+  if (relevante.includes(data.nivel_actual)) {
+    texto.textContent = `🔥 ${TEXTO_NIVEL_HUMO[data.nivel_actual]} ahora en Rosario${
+      data.pronostico[0].zona_expuesta ? ", sobre todo en " + data.pronostico[0].zona_expuesta : ""
+    }.`;
+    banner.hidden = false;
+    return;
+  }
+
+  if (data.proxima_ventana_riesgo) {
+    const v = data.proxima_ventana_riesgo;
+    texto.textContent = `🔥 Se espera humo de las islas desde las ${formatearHora(v.desde)}hs${
+      v.zona_expuesta ? ", sobre todo en " + v.zona_expuesta : ""
+    }.`;
+    banner.hidden = false;
+    return;
+  }
+
+  banner.hidden = true;
+}
+
+function pintarFocosCalorEnMapa(mostrar) {
+  focosCalorMarcadores.forEach((m) => mapa.removeLayer(m));
+  focosCalorMarcadores = [];
+
+  if (!mostrar || !datosHumo || datosHumo.estado !== "ok") return;
+
+  focosCalorMarcadores = datosHumo.focos.map((foco) =>
+    L.circleMarker([foco.lat, foco.lng], {
+      radius: 6,
+      color: "#ffffff",
+      weight: 1,
+      fillColor: "#ff5722",
+      fillOpacity: 0.85
+    })
+      .addTo(mapa)
+      .bindTooltip(
+        `🔥 Foco de calor · ${foco.fecha} · confianza: ${foco.confianza} · FRP: ${foco.frp} · ${foco.fuente}`
+      )
+  );
+}
+
+function initAlertaHumo() {
+  document.getElementById("toggle-focos-calor").addEventListener("change", (ev) => {
+    pintarFocosCalorEnMapa(ev.target.checked);
+  });
+
+  document.getElementById("banner-humo-ver").addEventListener("click", () => {
+    document.querySelector('.tab-btn[data-tab="humo"]').click();
+  });
+}
+
 function initTabs() {
   const botones = [...document.querySelectorAll(".tab-btn")];
   const paneles = [...document.querySelectorAll(".tab-panel")];
@@ -835,6 +997,8 @@ initFiltro();
 initReportesCiudadanos();
 initRiesgoRespiratorio();
 initReciclaje();
+initAlertaHumo();
 initTabs();
 cargarDatos();
 cargarReportes();
+cargarHumo();
