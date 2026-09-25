@@ -324,6 +324,10 @@ body {
 
 .btn-ir-canal:hover { opacity: 0.9; }
 
+.btn-ir-canal--secundario { background: var(--gris); }
+
+.reclamo-elegir { font-size: 0.8rem; color: #777; margin: 10px 0 0; }
+
 .btn-reporte:hover,
 #btn-calcular-riesgo:hover {
   background: var(--azul-oscuro);

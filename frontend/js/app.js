@@ -13,12 +13,13 @@ const COLORES = {
   sin_datos: "#6b7280"
 };
 
-// Canal oficial de reclamos y consultas de la Municipalidad de Rosario. No
-// existe una categoria especifica para "contaminacion de un curso de agua":
-// esto lleva al listado general (verificado a mano, no es la URL directa
-// de un formulario) para que la persona elija la categoria mas cercana
-// (ej. "Desagües y zanjas").
-const URL_RECLAMO_AMBIENTAL = "https://www.rosario.gob.ar/inicio/consultas-y-reclamos";
+// Categorias reales de reclamos.rosario.gob.ar, verificadas navegando el
+// sitio a mano (no hay una categoria especifica para "contaminacion de un
+// curso de agua" ni para humo/olores/sintomas respiratorios).
+const RECLAMO_DESAGUES_URL = "https://www.rosario.gob.ar/inicio/reclamar-sobre-desagues-y-zanjas";
+const RECLAMO_DESAGUES_LABEL = "Desagües y zanjas (agua, cloacas)";
+const RECLAMO_GENERAL_URL = "https://www.rosario.gob.ar/inicio/consultas-y-reclamos";
+const RECLAMO_GENERAL_LABEL = "Ver todas las categorías de reclamos";
 
 let mapa;
 let marcadores = [];
@@ -217,8 +218,8 @@ function mostrarDetalle(punto) {
       <textarea readonly rows="6">${texto}</textarea>
       <div class="reclamo-acciones">
         <button type="button" id="btn-copiar-reclamo-punto">Copiar texto del reclamo</button>
-        <a href="${URL_RECLAMO_AMBIENTAL}" target="_blank" rel="noopener" class="btn-ir-canal">
-          Ir a reclamos de rosario.gob.ar ↗
+        <a href="${RECLAMO_DESAGUES_URL}" target="_blank" rel="noopener" class="btn-ir-canal">
+          Ir a "${RECLAMO_DESAGUES_LABEL}" ↗
         </a>
       </div>
     `;
@@ -422,10 +423,14 @@ function mostrarConfirmacionReporte(reporte) {
   cont.innerHTML = `
     <p>✓ Reporte enviado, gracias. Si querés, pasalo de queja a reclamo formal:</p>
     <textarea readonly rows="6">${texto}</textarea>
+    <p class="reclamo-elegir">rosario.gob.ar no tiene una categoría para humo/olores: elegí a dónde va tu reclamo</p>
     <div class="reclamo-acciones">
       <button type="button" id="btn-copiar-reclamo-reporte">Copiar texto del reclamo</button>
-      <a href="${URL_RECLAMO_AMBIENTAL}" target="_blank" rel="noopener" class="btn-ir-canal">
-        Ir a reclamos de rosario.gob.ar ↗
+      <a href="${RECLAMO_DESAGUES_URL}" target="_blank" rel="noopener" class="btn-ir-canal">
+        Es por agua/cloacas → "${RECLAMO_DESAGUES_LABEL}" ↗
+      </a>
+      <a href="${RECLAMO_GENERAL_URL}" target="_blank" rel="noopener" class="btn-ir-canal btn-ir-canal--secundario">
+        Es otra cosa (aire, olores) → ${RECLAMO_GENERAL_LABEL} ↗
       </a>
     </div>
   `;
