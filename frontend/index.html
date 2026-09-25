@@ -29,6 +29,7 @@
     <button type="button" class="tab-btn is-active" data-tab="agua">🗺️ Agua</button>
     <button type="button" class="tab-btn" data-tab="reportes">📢 Reportes ciudadanos</button>
     <button type="button" class="tab-btn" data-tab="riesgo">🫁 Riesgo respiratorio</button>
+    <button type="button" class="tab-btn" data-tab="reciclaje">♻️ Reciclaje</button>
     <button type="button" class="tab-btn" data-tab="info">📖 Glosario</button>
   </nav>
 
@@ -124,8 +125,9 @@
       <form id="form-sintoma" class="form-reporte" hidden>
         <p class="form-reporte__ubicacion">
           <button type="button" id="btn-usar-ubicacion-sintoma">📍 Usar mi ubicación</button>
-          <span id="ubicacion-sintoma-estado">o hacé click en el mapa para marcarla</span>
+          <span id="ubicacion-sintoma-estado">o tocá el mapa de abajo para marcarla</span>
         </p>
+        <div class="mini-map" id="mapa-sintoma"></div>
         <fieldset>
           <legend>¿Qué sentís?</legend>
           <label><input type="checkbox" value="tos" name="sintoma-sintoma" /> Tos</label>
@@ -140,8 +142,9 @@
       <form id="form-bruma" class="form-reporte" hidden>
         <p class="form-reporte__ubicacion">
           <button type="button" id="btn-usar-ubicacion-bruma">📍 Usar mi ubicación</button>
-          <span id="ubicacion-bruma-estado">o hacé click en el mapa para marcarla</span>
+          <span id="ubicacion-bruma-estado">o tocá el mapa de abajo para marcarla</span>
         </p>
+        <div class="mini-map" id="mapa-bruma"></div>
         <input type="file" id="input-foto-bruma" accept="image/*" capture="environment" />
         <div id="bruma-preview"></div>
         <button type="submit" id="btn-enviar-bruma" disabled>Enviar reporte</button>
@@ -167,8 +170,51 @@
         <option value="epoc">EPOC</option>
         <option value="nino_deportista">Niño/a deportista</option>
       </select>
-      <button type="button" id="btn-calcular-riesgo">📍 Calcular mi riesgo acá</button>
+      <button type="button" id="btn-calcular-riesgo">📍 Usar mi ubicación</button>
+      <p class="mini-map-ayuda">o tocá el mapa de abajo para elegir el punto a evaluar</p>
+      <div class="mini-map" id="mapa-riesgo"></div>
       <div id="riesgo-resultado"></div>
+    </section>
+
+    </div>
+
+    <div class="tab-panel" data-tab-panel="reciclaje" hidden>
+
+    <section class="reciclaje">
+      <h2>¿Dónde reciclo esto en Rosario?</h2>
+      <p class="reciclaje__ayuda">
+        Elegí un centro de recepción de residuos especiales (pilas, aceite de cocina usado,
+        lámparas, textiles) para ver dirección y horario. Para envases, papel, cartón y vidrio,
+        usá el mapa de contenedores naranjas más abajo.
+      </p>
+
+      <select id="selector-punto-reciclaje">
+        <option value="">Elegí un centro de recepción...</option>
+      </select>
+      <div id="detalle-punto-reciclaje" class="reciclaje__detalle" hidden></div>
+
+      <p class="reciclaje__fuente">
+        Fuente: Municipalidad de Rosario ·
+        <a href="https://www.rosario.gob.ar/inicio/residuos" target="_blank" rel="noopener">rosario.gob.ar/inicio/residuos</a>
+      </p>
+
+      <h3>Mapa oficial de contenedores naranjas (papel, vidrio, plástico, metal, cartón)</h3>
+      <div class="reciclaje__mapa-embed">
+        <iframe
+          src="https://www.google.com/maps/d/embed?mid=1t8_EPHOzHbwaVxnnrwf9Dv8uvA0"
+          loading="lazy"
+          title="Mapa oficial de dónde llevar reciclables en Rosario"
+        ></iframe>
+      </div>
+
+      <h3>¿Por qué reciclarlo? Impacto si no se recicla</h3>
+      <p class="reciclaje__disclaimer">
+        Las cifras exactas varían mucho según la fuente y el tipo específico de producto —
+        no son datos oficiales de Rosario, sino estimaciones ambientales generales usadas en
+        campañas de concientización. Lo que todas las fuentes coinciden es en que el impacto
+        es real y de muy largo plazo.
+      </p>
+      <div class="impacto-grid" id="impacto-grid"></div>
     </section>
 
     </div>

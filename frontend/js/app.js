@@ -308,8 +308,6 @@ document.getElementById("detalle-cerrar").addEventListener("click", () => {
 
 let todosLosReportes = [];
 let reportesMarcadores = [];
-let marcadorSeleccionUbicacion = null;
-let modoSeleccionUbicacion = null; // 'sintoma' | 'bruma' | 'riesgo' | null
 let ubicacionSintoma = null;
 let ubicacionBruma = null;
 let brumaEstimadaActual = null;
@@ -324,10 +322,29 @@ function distanciaKm(lat1, lng1, lat2, lng2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-function marcarUbicacionEnMapa(lat, lng) {
-  if (marcadorSeleccionUbicacion) mapa.removeLayer(marcadorSeleccionUbicacion);
-  marcadorSeleccionUbicacion = L.marker([lat, lng], { opacity: 0.85 }).addTo(mapa);
-  mapa.panTo([lat, lng]);
+// Cada formulario que necesita una ubicación tiene su propio mapa chico (en
+// vez de depender del mapa principal, que vive en la pestaña "Agua" y no se
+// ve desde las otras pestañas). onClick recibe (lat, lng) cuando tocan el mapa.
+function initMiniMapa(idContenedor, onClick) {
+  const mapaChico = L.map(idContenedor, { scrollWheelZoom: false }).setView([-32.925, -60.68], 12);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenStreetMap contributors",
+    maxZoom: 18
+  }).addTo(mapaChico);
+
+  let marcador = null;
+  function marcar(lat, lng) {
+    if (marcador) mapaChico.removeLayer(marcador);
+    marcador = L.marker([lat, lng], { opacity: 0.85 }).addTo(mapaChico);
+    mapaChico.panTo([lat, lng]);
+  }
+
+  mapaChico.on("click", (e) => {
+    marcar(e.latlng.lat, e.latlng.lng);
+    onClick(e.latlng.lat, e.latlng.lng);
+  });
+
+  return { mapaChico, marcar };
 }
 
 function usarGeolocacion(onOk, onError) {
@@ -492,19 +509,33 @@ async function estimarBrumaDesdeFoto(file) {
   return Math.max(0, Math.min(100, Math.round(puntajeSaturacion + puntajeContraste)));
 }
 
+let mapaSintoma;
+let mapaBruma;
+
 function initReportesCiudadanos() {
   const btnSintoma = document.getElementById("btn-reportar-sintoma");
   const btnBruma = document.getElementById("btn-reportar-bruma");
   const formSintoma = document.getElementById("form-sintoma");
   const formBruma = document.getElementById("form-bruma");
 
+  mapaSintoma = initMiniMapa("mapa-sintoma", (lat, lng) => {
+    ubicacionSintoma = { lat, lng };
+    document.getElementById("ubicacion-sintoma-estado").textContent = "Ubicación marcada en el mapa ✓";
+  });
+  mapaBruma = initMiniMapa("mapa-bruma", (lat, lng) => {
+    ubicacionBruma = { lat, lng };
+    document.getElementById("ubicacion-bruma-estado").textContent = "Ubicación marcada en el mapa ✓";
+  });
+
   btnSintoma.addEventListener("click", () => {
     formSintoma.hidden = !formSintoma.hidden;
     formBruma.hidden = true;
+    if (!formSintoma.hidden) setTimeout(() => mapaSintoma.mapaChico.invalidateSize(), 0);
   });
   btnBruma.addEventListener("click", () => {
     formBruma.hidden = !formBruma.hidden;
     formSintoma.hidden = true;
+    if (!formBruma.hidden) setTimeout(() => mapaBruma.mapaChico.invalidateSize(), 0);
   });
 
   document.getElementById("btn-usar-ubicacion-sintoma").addEventListener("click", () => {
@@ -512,12 +543,11 @@ function initReportesCiudadanos() {
       (lat, lng) => {
         ubicacionSintoma = { lat, lng };
         document.getElementById("ubicacion-sintoma-estado").textContent = "Ubicación capturada ✓";
-        marcarUbicacionEnMapa(lat, lng);
+        mapaSintoma.marcar(lat, lng);
       },
       () => {
-        modoSeleccionUbicacion = "sintoma";
         document.getElementById("ubicacion-sintoma-estado").textContent =
-          "No se pudo acceder a tu ubicación: hacé click en el mapa para marcarla.";
+          "No se pudo acceder a tu ubicación: tocá el mapa de abajo para marcarla.";
       }
     );
   });
@@ -527,31 +557,13 @@ function initReportesCiudadanos() {
       (lat, lng) => {
         ubicacionBruma = { lat, lng };
         document.getElementById("ubicacion-bruma-estado").textContent = "Ubicación capturada ✓";
-        marcarUbicacionEnMapa(lat, lng);
+        mapaBruma.marcar(lat, lng);
       },
       () => {
-        modoSeleccionUbicacion = "bruma";
         document.getElementById("ubicacion-bruma-estado").textContent =
-          "No se pudo acceder a tu ubicación: hacé click en el mapa para marcarla.";
+          "No se pudo acceder a tu ubicación: tocá el mapa de abajo para marcarla.";
       }
     );
-  });
-
-  mapa.on("click", (e) => {
-    if (modoSeleccionUbicacion === "sintoma") {
-      ubicacionSintoma = { lat: e.latlng.lat, lng: e.latlng.lng };
-      document.getElementById("ubicacion-sintoma-estado").textContent = "Ubicación marcada en el mapa ✓";
-      marcarUbicacionEnMapa(e.latlng.lat, e.latlng.lng);
-      modoSeleccionUbicacion = null;
-    } else if (modoSeleccionUbicacion === "bruma") {
-      ubicacionBruma = { lat: e.latlng.lat, lng: e.latlng.lng };
-      document.getElementById("ubicacion-bruma-estado").textContent = "Ubicación marcada en el mapa ✓";
-      marcarUbicacionEnMapa(e.latlng.lat, e.latlng.lng);
-      modoSeleccionUbicacion = null;
-    } else if (modoSeleccionUbicacion === "riesgo") {
-      calcularYMostrarRiesgo(e.latlng.lat, e.latlng.lng);
-      modoSeleccionUbicacion = null;
-    }
   });
 
   formSintoma.addEventListener("submit", async (ev) => {
@@ -569,7 +581,7 @@ function initReportesCiudadanos() {
       formSintoma.reset();
       formSintoma.hidden = true;
       ubicacionSintoma = null;
-      document.getElementById("ubicacion-sintoma-estado").textContent = "o hacé click en el mapa para marcarla";
+      document.getElementById("ubicacion-sintoma-estado").textContent = "o tocá el mapa de abajo para marcarla";
     }
   });
 
@@ -602,7 +614,7 @@ function initReportesCiudadanos() {
       document.getElementById("btn-enviar-bruma").disabled = true;
       ubicacionBruma = null;
       brumaEstimadaActual = null;
-      document.getElementById("ubicacion-bruma-estado").textContent = "o hacé click en el mapa para marcarla";
+      document.getElementById("ubicacion-bruma-estado").textContent = "o tocá el mapa de abajo para marcarla";
     }
   });
 }
@@ -626,7 +638,7 @@ function calcularYMostrarRiesgo(lat, lng) {
   const ventanaMs = 24 * 60 * 60 * 1000;
   const ahora = Date.now();
 
-  marcarUbicacionEnMapa(lat, lng);
+  if (mapaRiesgo) mapaRiesgo.marcar(lat, lng);
 
   const cercanos = todosLosReportes.filter((r) => {
     const d = distanciaKm(lat, lng, r.lat, r.lng);
@@ -665,17 +677,126 @@ function calcularYMostrarRiesgo(lat, lng) {
   `;
 }
 
+let mapaRiesgo;
+
 function initRiesgoRespiratorio() {
+  mapaRiesgo = initMiniMapa("mapa-riesgo", (lat, lng) => calcularYMostrarRiesgo(lat, lng));
+
   document.getElementById("btn-calcular-riesgo").addEventListener("click", () => {
     usarGeolocacion(
       (lat, lng) => calcularYMostrarRiesgo(lat, lng),
       () => {
-        modoSeleccionUbicacion = "riesgo";
         document.getElementById("riesgo-resultado").innerHTML =
-          "<p>No se pudo acceder a tu ubicación. Hacé click en el mapa para elegir el punto a evaluar.</p>";
+          "<p>No se pudo acceder a tu ubicación. Tocá el mapa de abajo para elegir el punto a evaluar.</p>";
       }
     );
   });
+}
+
+// ---- Reciclaje ----
+// Datos verificados a mano en rosario.gob.ar/inicio/residuos (no hardcodeamos
+// los ~742 contenedores naranjas individuales: para esos se embebe el mapa
+// oficial de la Municipalidad más abajo).
+const PUNTOS_RESIDUOS_ESPECIALES = [
+  {
+    nombre: "Centro Municipal Distrito Oeste «Felipe Moré»",
+    direccion: "Av. Presidente Perón 4602",
+    horario: "Lunes a viernes de 8 a 14 hs",
+    acepta: "Pilas, aceite de cocina usado, lámparas y tubos fluorescentes, textiles"
+  },
+  {
+    nombre: "Dirección de Gestión Integral de Residuos",
+    direccion: "Montevideo 2852",
+    horario: "Lunes a viernes de 8 a 14 hs",
+    acepta: "Pilas, aceite de cocina usado, lámparas y tubos fluorescentes, textiles"
+  },
+  {
+    nombre: "Emprendimiento de Clasificación «Reciclando Futuro»",
+    direccion: "Bulevar Seguí 3964",
+    horario: "Lunes a viernes de 9 a 15 hs",
+    acepta: "Pilas, aceite de cocina usado, lámparas y tubos fluorescentes, textiles"
+  },
+  {
+    nombre: "Mercado del Patio",
+    direccion: "Cafferata 729",
+    horario: "Martes a domingo de 9 a 21 hs",
+    acepta: "Pilas, aceite de cocina usado, lámparas y tubos fluorescentes, textiles"
+  },
+  {
+    nombre: "Shopping Alto Rosario",
+    direccion: "Junín 501",
+    horario: "Lunes a domingo de 10 a 21 hs",
+    acepta: "Pilas, aceite de cocina usado, lámparas y tubos fluorescentes, textiles"
+  }
+];
+
+// Estimaciones ambientales de divulgación general (no datos oficiales de
+// Rosario). Las cifras varían mucho según la fuente; se muestran como rango
+// junto con un disclaimer explícito en la UI.
+const IMPACTO_PRODUCTOS = [
+  {
+    icono: "🔋",
+    producto: "Pilas",
+    texto:
+      "Una sola pila puede contaminar entre 3.000 y 170.000 litros de agua o tierra, según el tipo, por los metales pesados que contiene."
+  },
+  {
+    icono: "🛢️",
+    producto: "Aceite de cocina usado",
+    texto:
+      "Un litro tirado por la cañería puede contaminar entre 1.000 y 40.000 litros de agua, formando una capa que corta el oxígeno en ríos y arroyos."
+  },
+  {
+    icono: "🥤",
+    producto: "Botellas de plástico (PET)",
+    texto: "Puede tardar hasta 1.000 años en degradarse, fragmentándose en microplásticos mientras tanto."
+  },
+  {
+    icono: "🍾",
+    producto: "Vidrio",
+    texto: "Se recicla infinitamente sin perder calidad, pero si se descarta puede tardar hasta 4.000 años en degradarse."
+  },
+  {
+    icono: "📱",
+    producto: "Celulares y electrónicos",
+    texto:
+      "Contienen plomo, mercurio y cadmio que contaminan suelo y agua si van a la basura común. Pueden tardar entre 150 y 4.000 años en degradarse."
+  }
+];
+
+function initReciclaje() {
+  const select = document.getElementById("selector-punto-reciclaje");
+  const detalle = document.getElementById("detalle-punto-reciclaje");
+
+  select.innerHTML =
+    '<option value="">Elegí un centro de recepción...</option>' +
+    PUNTOS_RESIDUOS_ESPECIALES.map((p, i) => `<option value="${i}">${p.nombre}</option>`).join("");
+
+  select.addEventListener("change", () => {
+    if (select.value === "") {
+      detalle.hidden = true;
+      return;
+    }
+    const punto = PUNTOS_RESIDUOS_ESPECIALES[Number(select.value)];
+    detalle.hidden = false;
+    detalle.innerHTML = `
+      <p><strong>${punto.nombre}</strong></p>
+      <p>📍 ${punto.direccion}</p>
+      <p>🕒 ${punto.horario}</p>
+      <p>♻️ Acepta: ${punto.acepta}</p>
+    `;
+  });
+
+  const grid = document.getElementById("impacto-grid");
+  grid.innerHTML = IMPACTO_PRODUCTOS.map(
+    (item) => `
+    <div class="impacto-card">
+      <div class="impacto-card__icono">${item.icono}</div>
+      <p class="impacto-card__titulo">${item.producto}</p>
+      <p class="impacto-card__texto">${item.texto}</p>
+    </div>
+  `
+  ).join("");
 }
 
 function initTabs() {
@@ -691,11 +812,20 @@ function initTabs() {
         p.hidden = p.dataset.tabPanel !== tab;
       });
 
-      // El mapa de Leaflet calcula su tamaño con el contenedor visible; si
-      // se inicializo (o quedo) oculto por una pestaña, hay que refrescarlo.
-      if (tab === "agua" && mapa) {
-        setTimeout(() => mapa.invalidateSize(), 0);
-      }
+      // Los mapas de Leaflet calculan su tamaño con el contenedor visible; si
+      // se inicializaron (o quedaron) ocultos por una pestaña, hay que refrescarlos.
+      setTimeout(() => {
+        if (tab === "agua" && mapa) mapa.invalidateSize();
+        if (tab === "reportes") {
+          if (mapaSintoma && !document.getElementById("form-sintoma").hidden) {
+            mapaSintoma.mapaChico.invalidateSize();
+          }
+          if (mapaBruma && !document.getElementById("form-bruma").hidden) {
+            mapaBruma.mapaChico.invalidateSize();
+          }
+        }
+        if (tab === "riesgo" && mapaRiesgo) mapaRiesgo.mapaChico.invalidateSize();
+      }, 0);
     });
   });
 }
@@ -704,6 +834,7 @@ initMapa();
 initFiltro();
 initReportesCiudadanos();
 initRiesgoRespiratorio();
+initReciclaje();
 initTabs();
 cargarDatos();
 cargarReportes();
