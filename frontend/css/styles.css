@@ -68,6 +68,7 @@ body {
   flex-direction: column;
   gap: 4px;
   border: 1px solid var(--borde);
+  cursor: help;
 }
 
 .summary-card__count { font-size: 1.8rem; font-weight: 700; }

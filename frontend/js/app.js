@@ -130,11 +130,18 @@ function mostrarDetalle(punto) {
   seccion.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
-function pintarResumen(resumen) {
+function pintarResumen(resumen, puntos) {
   document.getElementById("count-verde").textContent = resumen.verde ?? 0;
   document.getElementById("count-amarillo").textContent = resumen.amarillo ?? 0;
   document.getElementById("count-rojo").textContent = resumen.rojo ?? 0;
   document.getElementById("count-sin_datos").textContent = resumen.sin_datos ?? 0;
+
+  ["verde", "amarillo", "rojo", "sin_datos"].forEach((nivel) => {
+    const card = document.getElementById(`card-${nivel}`);
+    if (!card) return;
+    const nombres = puntos.filter((p) => p.nivel_alerta === nivel).map((p) => p.nombre);
+    card.title = nombres.length ? nombres.join("\n") : "No hay puntos en esta categoría.";
+  });
 }
 
 async function cargarDatos() {
@@ -149,7 +156,7 @@ async function cargarDatos() {
     todosLosPuntos = dataPuntos.puntos;
     pintarMarcadores(todosLosPuntos);
     pintarLista(todosLosPuntos);
-    pintarResumen(dataResumen.resumen);
+    pintarResumen(dataResumen.resumen, todosLosPuntos);
   } catch (err) {
     document.getElementById("lista-puntos").innerHTML =
       '<p class="panel__loading">No se pudo conectar con el backend. ¿Está corriendo en el puerto 3001?</p>';
