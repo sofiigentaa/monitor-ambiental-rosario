@@ -154,6 +154,7 @@ async function cargarDatos() {
     const dataResumen = await resResumen.json();
 
     todosLosPuntos = dataPuntos.puntos;
+    poblarBarrios(todosLosPuntos);
     pintarMarcadores(todosLosPuntos);
     pintarLista(todosLosPuntos);
     pintarResumen(dataResumen.resumen, todosLosPuntos);
@@ -162,6 +163,14 @@ async function cargarDatos() {
       '<p class="panel__loading">No se pudo conectar con el backend. ¿Está corriendo en el puerto 3001?</p>';
     console.error(err);
   }
+}
+
+function poblarBarrios(puntos) {
+  const datalist = document.getElementById("barrios-datalist");
+  const barrios = [...new Set(puntos.map((p) => p.barrio_aprox).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, "es")
+  );
+  datalist.innerHTML = barrios.map((b) => `<option value="${b}"></option>`).join("");
 }
 
 function initFiltro() {
