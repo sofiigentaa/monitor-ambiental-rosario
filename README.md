@@ -1,4 +1,4 @@
-# Monitor Hídrico Rosario
+# Monitor Ambiental Rosario
 
 App web para el desarrollo sostenible y el cuidado del ambiente: muestra qué zonas de
 Rosario (arroyos Ludueña y Saladillo, río Paraná) tienen agua contaminada, a partir de
@@ -18,7 +18,7 @@ se intoxique por contacto con el agua.
   convenio con la FCEIA-UNR). No es tiempo real: son muestreos mensuales.
 
 ```
-monitor-hidrico-rosario/
+monitor-ambiental-rosario/
 ├── backend/
 │   ├── src/
 │   │   ├── data/            # datasets semilla (JSON)

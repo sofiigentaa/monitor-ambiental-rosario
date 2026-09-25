@@ -18,10 +18,10 @@ app.use("/api/reportes", reportesRouter);
 app.use(express.static(path.join(__dirname, "..", "..", "frontend")));
 
 app.get("/health", (req, res) => {
-  res.json({ status: "ok", proyecto: "Monitor Hídrico Rosario" });
+  res.json({ status: "ok", proyecto: "Monitor Ambiental Rosario" });
 });
 
 app.listen(PORT, () => {
-  console.log(`Monitor Hídrico Rosario backend escuchando en http://localhost:${PORT}`);
+  console.log(`Monitor Ambiental Rosario backend escuchando en http://localhost:${PORT}`);
   console.log(`API en http://localhost:${PORT}/api/puntos`);
 });

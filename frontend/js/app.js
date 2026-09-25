@@ -1,4 +1,4 @@
-// Monitor Hídrico Rosario - frontend
+// Monitor Ambiental Rosario - frontend
 // Diseño/layout hardcodeado a propósito. Este archivo solo consume el API
 // propio (backend/src/routes/api.js) y pinta mapa + panel + detalle.
 
@@ -131,7 +131,7 @@ function extraerFuentesProbables(descripcion) {
 
 function generarTextoReclamoPunto(punto) {
   return [
-    `Reclamo ambiental - Monitor Hídrico Rosario`,
+    `Reclamo ambiental - Monitor Ambiental Rosario`,
     `Fecha: ${new Date().toLocaleString("es-AR")}`,
     `Punto: ${punto.nombre}`,
     `Ubicación (lat, lng): ${punto.lat}, ${punto.lng}`,
@@ -393,7 +393,7 @@ async function enviarReporte(payload) {
 function generarTextoReclamoReporte(reporte) {
   const tipoTexto = reporte.tipo === "sintoma" ? "síntomas respiratorios/irritación" : "bruma o humo visible";
   return [
-    `Reclamo ambiental - Monitor Hídrico Rosario`,
+    `Reclamo ambiental - Monitor Ambiental Rosario`,
     `Fecha: ${new Date(reporte.fecha).toLocaleString("es-AR")}`,
     `Ubicación (lat, lng): ${reporte.lat.toFixed(5)}, ${reporte.lng.toFixed(5)}`,
     `Tipo de reporte: ${tipoTexto}`,
