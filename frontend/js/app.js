@@ -13,8 +13,12 @@ const COLORES = {
   sin_datos: "#6b7280"
 };
 
-// Canal oficial de reclamos ambientales de la Municipalidad de Rosario.
-const URL_RECLAMO_AMBIENTAL = "https://www.rosario.gob.ar/inicio/reclamos-sobre-ambiente-y-mantenimiento-urbano";
+// Canal oficial de reclamos y consultas de la Municipalidad de Rosario. No
+// existe una categoria especifica para "contaminacion de un curso de agua":
+// esto lleva al listado general (verificado a mano, no es la URL directa
+// de un formulario) para que la persona elija la categoria mas cercana
+// (ej. "Desagües y zanjas").
+const URL_RECLAMO_AMBIENTAL = "https://www.rosario.gob.ar/inicio/consultas-y-reclamos";
 
 let mapa;
 let marcadores = [];
@@ -214,12 +218,13 @@ function mostrarDetalle(punto) {
       <div class="reclamo-acciones">
         <button type="button" id="btn-copiar-reclamo-punto">Copiar texto del reclamo</button>
         <a href="${URL_RECLAMO_AMBIENTAL}" target="_blank" rel="noopener" class="btn-ir-canal">
-          Ir al canal oficial de reclamos ↗
+          Ir a reclamos de rosario.gob.ar ↗
         </a>
       </div>
       <p class="reclamo-nota">
-        Copiá el texto y pegalo ahí. Es el canal de reclamos ambientales de rosario.gob.ar;
-        verificá que sea el formulario correcto antes de enviarlo.
+        Copiá el texto y pegalo ahí. rosario.gob.ar no tiene una categoría específica para
+        contaminación de un curso de agua: elegí "Desagües y zanjas" o la que más se ajuste
+        dentro de "Ambiente y mantenimiento urbano". Para enviarlo vas a necesitar tu Perfil Digital.
       </p>
     `;
     document
@@ -425,12 +430,13 @@ function mostrarConfirmacionReporte(reporte) {
     <div class="reclamo-acciones">
       <button type="button" id="btn-copiar-reclamo-reporte">Copiar texto del reclamo</button>
       <a href="${URL_RECLAMO_AMBIENTAL}" target="_blank" rel="noopener" class="btn-ir-canal">
-        Ir al canal oficial de reclamos ↗
+        Ir a reclamos de rosario.gob.ar ↗
       </a>
     </div>
     <p class="reclamo-nota">
-      Copiá el texto y pegalo ahí. Es el canal de reclamos ambientales de rosario.gob.ar;
-      verificá que sea el formulario correcto antes de enviarlo.
+      Copiá el texto y pegalo ahí. rosario.gob.ar no tiene una categoría específica para
+      contaminación de un curso de agua: elegí "Desagües y zanjas" o la que más se ajuste
+      dentro de "Ambiente y mantenimiento urbano". Para enviarlo vas a necesitar tu Perfil Digital.
     </p>
   `;
   document
