@@ -1,0 +1,27 @@
+{
+  "nota": "No se encontro una fuente publica automatizada de aptitud para baño de los balnearios de Rosario (se investigo antes de armar este archivo: la pagina municipal del balneario es informativa/de servicios, sin resultados bacteriologicos publicados en un formato consumible). Por eso este archivo se carga y actualiza a mano. 'fecha_actualizacion' indica cuando se reviso por ultima vez el estado de aptitud. Antes de bañarte, confirma siempre con fuentes oficiales o las redes de la Municipalidad de Rosario.",
+  "fecha_actualizacion": "2026-09-25",
+  "nota_coordenadas": "Coordenadas aproximadas (no geo-referenciadas con precision). Se recomienda confirmar con Infomapa Rosario (infomapa.rosario.gov.ar) antes de producción.",
+  "balnearios": [
+    {
+      "id": "la-florida",
+      "nombre": "Balneario La Florida",
+      "lat": -32.9010,
+      "lng": -60.6470,
+      "barrio_aprox": "La Florida",
+      "descripcion": "Predio concesionado con guardavidas, en la Costanera entre Mirador Ricardo Núñez y Escauriza.",
+      "aptitud": "sin_datos",
+      "referencia": "https://www.rosario.gob.ar/inicio/balneario-la-florida-y-rambla-catalunya"
+    },
+    {
+      "id": "rambla-catalunya",
+      "nombre": "Rambla Catalunya",
+      "lat": -32.898,
+      "lng": -60.6445,
+      "barrio_aprox": "La Florida",
+      "descripcion": "Playa pública y gratuita, con guardavidas, en la Costanera entre Mirador Ricardo Núñez y Av. Puccio.",
+      "aptitud": "sin_datos",
+      "referencia": "https://www.rosario.gob.ar/inicio/balneario-la-florida-y-rambla-catalunya"
+    }
+  ]
+}

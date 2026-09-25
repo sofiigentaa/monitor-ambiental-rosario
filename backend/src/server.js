@@ -7,6 +7,8 @@ const apiRouter = require("./routes/api");
 const reportesRouter = require("./routes/reportes");
 const humoRouter = require("./routes/humo");
 const exportarRouter = require("./routes/exportar");
+const rioRouter = require("./routes/rio");
+const balneariosRouter = require("./routes/balnearios");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -18,6 +20,8 @@ app.use("/api", apiRouter);
 app.use("/api/reportes", reportesRouter);
 app.use("/api/humo", humoRouter);
 app.use("/api/exportar", exportarRouter);
+app.use("/api/rio", rioRouter);
+app.use("/api/balnearios", balneariosRouter);
 
 // Sirve el frontend hardcodeado directamente desde el backend (útil para
 // levantar todo con un solo comando en desarrollo/demo).

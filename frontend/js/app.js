@@ -1162,6 +1162,119 @@ function initAlertaHumo() {
   });
 }
 
+// ---- Río y playas ----
+// Ver backend/src/lib/rio.js (altura del río, scrapeada de Prefectura Naval)
+// y backend/src/lib/balnearios.js (semaforo cargado a mano, sin fuente
+// automatica publica).
+
+const TEXTO_NIVEL_RIESGO_RIO = {
+  normal: "Nivel normal",
+  alerta: "Nivel de alerta",
+  evacuacion: "Nivel de evacuación"
+};
+
+async function cargarRio() {
+  const cont = document.getElementById("rio-contenido");
+  try {
+    const res = await fetch(`${API_BASE}/rio`);
+    const data = await res.json();
+    pintarRio(data, cont);
+  } catch (err) {
+    console.error("No se pudo consultar la altura del río", err);
+    pintarRio({ estado: "datos_no_disponibles", mensaje: "No se pudo conectar con el backend." }, cont);
+  }
+}
+
+function pintarRio(data, cont) {
+  if (!data || data.estado !== "ok") {
+    cont.innerHTML = `<div class="humo-sin-datos"><p>${
+      (data && data.mensaje) || "No hay datos disponibles en este momento."
+    }</p></div>`;
+    return;
+  }
+
+  const claseRiesgo = data.nivel_riesgo !== "normal" ? ` rio-card--${data.nivel_riesgo}` : "";
+
+  cont.innerHTML = `
+    <div class="rio-card${claseRiesgo}">
+      <div>
+        <div class="rio-card__nivel">${data.nivel_m.toFixed(2)} m</div>
+        <div class="rio-card__tendencia">${data.estado_icono} ${data.estado_texto}</div>
+      </div>
+      <div class="rio-card__meta">
+        <p>${TEXTO_NIVEL_RIESGO_RIO[data.nivel_riesgo] || ""}</p>
+        <p>Alerta: ${data.alerta_m} m · Evacuación: ${data.evacuacion_m} m</p>
+        <p>Medición anterior: ${data.registro_anterior_m} m</p>
+        <p>Fecha/hora: ${data.fecha_hora}</p>
+        <p>Fuente: ${data.fuente}</p>
+      </div>
+    </div>
+  `;
+}
+
+let mapaBalnearios;
+
+async function cargarBalnearios() {
+  const cont = document.getElementById("balnearios-contenido");
+  try {
+    const res = await fetch(`${API_BASE}/balnearios`);
+    const data = await res.json();
+    pintarBalnearios(data, cont);
+  } catch (err) {
+    console.error("No se pudieron consultar los balnearios", err);
+    cont.innerHTML = '<p class="panel__loading">No se pudo conectar con el backend.</p>';
+  }
+}
+
+// La aptitud de un balneario usa el mismo semaforo visual (verde/amarillo/
+// rojo/sin_datos) que los puntos de agua, para que se lea igual en toda la app.
+const NIVEL_EQUIVALENTE_APTITUD = {
+  apta: "verde",
+  evitar_contacto: "amarillo",
+  no_apta: "rojo",
+  sin_datos: "sin_datos"
+};
+
+function pintarBalnearios(data, cont) {
+  const balnearios = data.balnearios || [];
+
+  cont.innerHTML = `
+    <p class="rio-playas__disclaimer">Última actualización de este estado: ${data.fecha_actualizacion}</p>
+    ${balnearios
+      .map((b) => {
+        const nivel = NIVEL_EQUIVALENTE_APTITUD[b.aptitud] || "sin_datos";
+        return `
+      <div class="balneario-card">
+        <span class="detalle-badge badge--${nivel}">${textoNivel(nivel)}</span>
+        <p class="balneario-card__nombre">${b.nombre}</p>
+        <p class="balneario-card__descripcion">${b.descripcion}</p>
+        <p class="balneario-card__descripcion"><em>${b.mensaje_aptitud}</em></p>
+        <p class="balneario-card__fuente">
+          <a href="${b.referencia}" target="_blank" rel="noopener">Más info en rosario.gob.ar ↗</a>
+        </p>
+      </div>
+    `;
+      })
+      .join("")}
+  `;
+
+  if (mapaBalnearios) {
+    balnearios
+      .filter((b) => typeof b.lat === "number" && typeof b.lng === "number")
+      .forEach((b) => {
+        L.marker([b.lat, b.lng]).addTo(mapaBalnearios).bindTooltip(b.nombre);
+      });
+  }
+}
+
+function initRioPlayas() {
+  mapaBalnearios = L.map("mapa-balnearios", { scrollWheelZoom: false }).setView([-32.9, -60.65], 13);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenStreetMap contributors",
+    maxZoom: 18
+  }).addTo(mapaBalnearios);
+}
+
 function initTabs() {
   const botones = [...document.querySelectorAll(".tab-btn")];
   const paneles = [...document.querySelectorAll(".tab-panel")];
@@ -1188,6 +1301,7 @@ function initTabs() {
           }
         }
         if (tab === "riesgo" && mapaRiesgo) mapaRiesgo.mapaChico.invalidateSize();
+        if (tab === "rio" && mapaBalnearios) mapaBalnearios.invalidateSize();
       }, 0);
     });
   });
@@ -1199,7 +1313,10 @@ initReportesCiudadanos();
 initRiesgoRespiratorio();
 initReciclaje();
 initAlertaHumo();
+initRioPlayas();
 initTabs();
 cargarDatos();
 cargarReportes();
 cargarHumo();
+cargarRio();
+cargarBalnearios();

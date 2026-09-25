@@ -104,6 +104,8 @@ romper o mostrar un error.
 | GET    | `/api/humo`             | Focos de calor, pronóstico horario de riesgo de humo, nivel actual y próxima ventana de riesgo |
 | GET    | `/api/exportar/json`    | Datos abiertos: puntos de agua evaluados, en JSON               |
 | GET    | `/api/exportar/csv`     | Datos abiertos: puntos de agua evaluados, en CSV (una fila por punto) |
+| GET    | `/api/rio`              | Altura del río Paraná en Rosario, tendencia y niveles de alerta/evacuación |
+| GET    | `/api/balnearios`       | Semáforo de balnearios (cargado a mano, ver más abajo)          |
 
 ## Cómo se calcula el nivel de alerta
 
@@ -204,6 +206,29 @@ comentarios de `humo.js`, pensada para complementar — no reemplazar — las fu
 oficiales (por ejemplo, los avisos de Defensa Civil o del municipio ante eventos de
 humo). Los datos se cachean 45 minutos en memoria para no saturar las APIs gratuitas.
 
+## Río y playas
+
+Pestaña "🌊 Río y playas", con dos fuentes de naturaleza muy distinta:
+
+- **Altura del río Paraná** (`backend/src/lib/rio.js`): dato oficial y en vivo de
+  **Prefectura Naval Argentina**, que publica cada ~12hs la altura hidrométrica de
+  varios puertos. Prefectura no tiene una API JSON pública, así que esto scrapea la
+  tabla HTML de su sitio — se verificó el formato a mano antes de escribir el parser,
+  pero por ser scraping es inherentemente frágil: si cambian el HTML de esa página,
+  el endpoint va a empezar a responder `datos_no_disponibles` en vez de romperse o
+  devolver un dato incorrecto. Se muestra la tendencia (creciendo/bajando/estable) y
+  los umbrales de alerta/evacuación que usa la propia Prefectura para Rosario, con
+  una aclaración de que en bajante la contaminación tiende a concentrarse más (menos
+  agua diluyendo los mismos vertidos).
+- **Semáforo de balnearios** (`backend/src/lib/balnearios.js` +
+  `backend/src/data/balnearios.json`): se investigó si la Municipalidad publica un
+  indicador de aptitud para baño en un formato automatizable — la página oficial de
+  La Florida / Rambla Catalunya es informativa (servicios, horarios), sin resultados
+  bacteriológicos en un formato consumible. Por eso este dato se carga **a mano**, con
+  `fecha_actualizacion` visible en la respuesta del API y en la UI. Hoy todos los
+  balnearios figuran como `sin_datos` — no se inventó un estado de aptitud sin una
+  fuente real que lo respalde.
+
 ## Fuentes de datos
 
 - [Rosario Datos — Calidad Ambiental / Agua](https://datos.rosario.gob.ar/territorio/ambiente/calidad-ambiental/agua)
@@ -215,16 +240,17 @@ humo). Los datos se cachean 45 minutos en memoria para no saturar las APIs gratu
 - [Open-Meteo](https://open-meteo.com/) — pronóstico de viento y calidad de aire (gratis, sin API key)
 - [Reclamos y consultas — rosario.gob.ar](https://www.rosario.gob.ar/inicio/consultas-y-reclamos) — canal oficial de reclamos ambientales
 - [Residuos — rosario.gob.ar](https://www.rosario.gob.ar/inicio/residuos) — centros de recepción y mapa oficial de reciclables
+- [Prefectura Naval Argentina — Altura de los ríos](https://contenidosweb.prefecturanaval.gob.ar/alturas/) — altura hidrométrica del Paraná (scrapeada, ver `rio.js`)
+- [Balneario La Florida y Rambla Catalunya — rosario.gob.ar](https://www.rosario.gob.ar/inicio/balneario-la-florida-y-rambla-catalunya) — página oficial de los balnearios
 
 ## Estado y próximos pasos
+
+**Fases originales del monitor de agua:**
 
 - ✅ Fase 0 — estructura del repo
 - ✅ Fase 1 — dataset semilla con datos reales del Ludueña (12 puntos)
 - ✅ Fase 2 — backend/API con cálculo de nivel de alerta
 - ✅ Fase 3 — frontend hardcodeado (mapa + panel + detalle)
-- ✅ Fase 4b — reportes ciudadanos, riesgo respiratorio, reciclaje y alerta de
-  humo por quemas en las islas (agua sigue siendo mensual/oficial; estas
-  capas son comunitarias/estimaciones propias, documentadas como tales).
 - 🟡 Fase 4 — capa de actualización de **agua**: `scripts/actualizar-datos.js`
   está armado como punto de extensión pero **todavía no conecta a una fuente
   en vivo** (ver el comentario en ese archivo — falta confirmar el
@@ -232,8 +258,22 @@ humo). Los datos se cachean 45 minutos en memoria para no saturar las APIs gratu
 - 🟡 Fase 5 — pulido: falta cargar datos estructurados del arroyo Saladillo y
   el río Paraná (hoy figuran como `sin_datos_estructurados`), mejorar la
   precisión de las coordenadas (hoy son aproximadas, ver
-  `nota_coordenadas` en el dataset), persistencia real para los reportes
-  ciudadanos (hoy en memoria) y accesibilidad/mobile del frontend.
+  `nota_coordenadas` en el dataset) y accesibilidad/mobile del frontend.
+
+**Ampliación de funcionalidades (2026):**
+
+- ✅ Reportes ciudadanos, riesgo respiratorio, reciclaje y alerta de humo por
+  quemas en las islas (agua sigue siendo mensual/oficial; estas capas son
+  comunitarias/estimaciones propias, documentadas como tales).
+- ✅ Fase 1 — confiabilidad de reportes (confirmaciones, rate limit, peso),
+  historial y tendencia por punto de agua, datos abiertos (CSV/JSON).
+- ✅ Fase 2 — altura del río Paraná (Prefectura Naval) y semáforo de
+  balnearios (cargado a mano, sin fuente automática disponible).
+- 🟡 Fase 3 — alertas por suscripción (bot de Telegram).
+- 🟡 Fase 4 — reclamo colectivo a partir de reportes confirmados agrupados.
+- 🟡 Fase 5 — calidad de aire pronosticada (PM2.5/PM10, Open-Meteo) integrada
+  a la pestaña de riesgo respiratorio.
+- 🟡 Persistencia real (hoy en memoria) para reportes ciudadanos.
 
 ## Nota importante
 

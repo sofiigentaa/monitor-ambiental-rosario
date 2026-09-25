@@ -35,6 +35,7 @@
     <button type="button" class="tab-btn" data-tab="reportes">📢 Reportes ciudadanos</button>
     <button type="button" class="tab-btn" data-tab="riesgo">🫁 Riesgo respiratorio</button>
     <button type="button" class="tab-btn" data-tab="humo">🔥 Alerta de humo</button>
+    <button type="button" class="tab-btn" data-tab="rio">🌊 Río y playas</button>
     <button type="button" class="tab-btn" data-tab="reciclaje">♻️ Reciclaje</button>
     <button type="button" class="tab-btn" data-tab="info">📖 Glosario</button>
   </nav>
@@ -202,6 +203,33 @@
       <div id="humo-contenido">
         <p class="panel__loading">Consultando focos de calor y viento…</p>
       </div>
+    </section>
+
+    </div>
+
+    <div class="tab-panel" data-tab-panel="rio" hidden>
+
+    <section class="rio-playas">
+      <h2>🌊 Altura del río Paraná</h2>
+      <p class="rio-playas__disclaimer">
+        Dato oficial de Prefectura Naval Argentina (se actualiza cada 12hs aprox.).
+        En bajante, los mismos vertidos de efluentes se diluyen en menos agua, así que la
+        contaminación tiende a concentrarse más que con el río en niveles normales o creciendo.
+      </p>
+      <div id="rio-contenido">
+        <p class="panel__loading">Consultando altura del río…</p>
+      </div>
+    </section>
+
+    <section class="rio-playas">
+      <h2>🏖️ Balnearios</h2>
+      <p class="rio-playas__disclaimer">
+        No existe una fuente pública automatizada de aptitud para baño en Rosario — este estado
+        se carga a mano y puede estar desactualizado. Antes de bañarte, confirmá siempre con
+        fuentes oficiales o las redes de la Municipalidad de Rosario.
+      </p>
+      <div class="mini-map" id="mapa-balnearios"></div>
+      <div id="balnearios-contenido" class="balnearios-grid"></div>
     </section>
 
     </div>
