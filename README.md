@@ -106,6 +106,7 @@ romper o mostrar un error.
 | GET    | `/api/exportar/csv`     | Datos abiertos: puntos de agua evaluados, en CSV (una fila por punto) |
 | GET    | `/api/rio`              | Altura del río Paraná en Rosario, tendencia y niveles de alerta/evacuación |
 | GET    | `/api/balnearios`       | Semáforo de balnearios (cargado a mano, ver más abajo)          |
+| GET    | `/api/telegram/info`    | Si el bot de Telegram está configurado, y su `@usuario` (para el botón de la web) |
 
 ## Cómo se calcula el nivel de alerta
 
@@ -229,6 +230,40 @@ Pestaña "🌊 Río y playas", con dos fuentes de naturaleza muy distinta:
   balnearios figuran como `sin_datos` — no se inventó un estado de aptitud sin una
   fuente real que lo respalde.
 
+## Alertas por Telegram
+
+Botón "📲 Recibí alertas en Telegram" al pie de la web (se esconde solo si el bot no
+está configurado). El bot (`backend/src/lib/bot.js`) habla directo con la API de
+Telegram por HTTP (sin librería externa, mismo criterio que `humo.js`/`rio.js`), por
+long-polling — no hace falta un dominio público ni webhook, así que funciona igual en
+local o en Render sin configuración extra de red.
+
+**Configuración** (ver `backend/.env.example`): `TELEGRAM_BOT_TOKEN` se consigue
+gratis hablándole a [@BotFather](https://t.me/BotFather) en Telegram (`/newbot`).
+`TELEGRAM_BOT_USERNAME` es el nombre de usuario que le pusiste, solo se usa para armar
+el link del botón. Sin `TELEGRAM_BOT_TOKEN`, el bot simplemente no arranca.
+
+**Comandos:**
+
+| Comando | Qué hace |
+|---|---|
+| Mandar tu ubicación (📎 → Ubicación) | El bot pregunta un nombre y guarda esa zona |
+| `/agregar <nombre> <barrio>` | Guarda una zona por nombre de barrio, ej. `/agregar casa Fisherton` (el barrio se resuelve al promedio de los puntos de agua conocidos con ese `barrio_aprox` — no es geocodificación real) |
+| `/zonas` | Lista tus zonas guardadas |
+| `/borrar <nombre>` | Borra una zona |
+| `/baja` | Se da de baja (borra todas las zonas del chat) |
+| `/ayuda` | Muestra los comandos |
+
+**Avisos:** cada zona guarda un "último estado notificado" y solo avisa ante un
+*cambio* (no en cada chequeo periódico, que corre cada 15 minutos) — riesgo de humo
+que sube a moderado/alto, cambio de nivel del punto de agua más cercano (hasta 3km),
+aparición de reportes ciudadanos confirmados cerca (reutiliza `hayAlertaTemprana` de
+`reportes.js`), o cambio de estado de cualquier balneario. La primera vez que se
+revisa una zona nueva no dispara avisos — solo establece la base para comparar después.
+
+Persistencia en memoria, igual que los reportes ciudadanos (se pierde si el proceso
+se reinicia).
+
 ## Fuentes de datos
 
 - [Rosario Datos — Calidad Ambiental / Agua](https://datos.rosario.gob.ar/territorio/ambiente/calidad-ambiental/agua)
@@ -242,6 +277,7 @@ Pestaña "🌊 Río y playas", con dos fuentes de naturaleza muy distinta:
 - [Residuos — rosario.gob.ar](https://www.rosario.gob.ar/inicio/residuos) — centros de recepción y mapa oficial de reciclables
 - [Prefectura Naval Argentina — Altura de los ríos](https://contenidosweb.prefecturanaval.gob.ar/alturas/) — altura hidrométrica del Paraná (scrapeada, ver `rio.js`)
 - [Balneario La Florida y Rambla Catalunya — rosario.gob.ar](https://www.rosario.gob.ar/inicio/balneario-la-florida-y-rambla-catalunya) — página oficial de los balnearios
+- [Telegram Bot API](https://core.telegram.org/bots/api) — usada directo por HTTP para las alertas por suscripción
 
 ## Estado y próximos pasos
 
@@ -269,11 +305,13 @@ Pestaña "🌊 Río y playas", con dos fuentes de naturaleza muy distinta:
   historial y tendencia por punto de agua, datos abiertos (CSV/JSON).
 - ✅ Fase 2 — altura del río Paraná (Prefectura Naval) y semáforo de
   balnearios (cargado a mano, sin fuente automática disponible).
-- 🟡 Fase 3 — alertas por suscripción (bot de Telegram).
+- ✅ Fase 3 — alertas por suscripción (bot de Telegram, long-polling, sin
+  librería externa).
 - 🟡 Fase 4 — reclamo colectivo a partir de reportes confirmados agrupados.
 - 🟡 Fase 5 — calidad de aire pronosticada (PM2.5/PM10, Open-Meteo) integrada
   a la pestaña de riesgo respiratorio.
-- 🟡 Persistencia real (hoy en memoria) para reportes ciudadanos.
+- 🟡 Persistencia real (hoy en memoria) para reportes ciudadanos y
+  suscripciones de Telegram.
 
 ## Nota importante
 

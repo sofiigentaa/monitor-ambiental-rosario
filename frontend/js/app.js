@@ -1307,6 +1307,22 @@ function initTabs() {
   });
 }
 
+// ---- Botón "Recibí alertas en Telegram" ----
+// Se esconde solo si el bot no esta configurado en el backend
+// (TELEGRAM_BOT_TOKEN/TELEGRAM_BOT_USERNAME), ver backend/src/lib/bot.js.
+async function cargarTelegramCta() {
+  try {
+    const res = await fetch(`${API_BASE}/telegram/info`);
+    const data = await res.json();
+    if (data.disponible && data.usuario) {
+      document.getElementById("telegram-cta-link").href = `https://t.me/${data.usuario}`;
+      document.getElementById("telegram-cta").hidden = false;
+    }
+  } catch (err) {
+    console.error("No se pudo consultar el estado del bot de Telegram", err);
+  }
+}
+
 initMapa();
 initFiltro();
 initReportesCiudadanos();
@@ -1317,6 +1333,7 @@ initRioPlayas();
 initTabs();
 cargarDatos();
 cargarReportes();
+cargarTelegramCta();
 cargarHumo();
 cargarRio();
 cargarBalnearios();
