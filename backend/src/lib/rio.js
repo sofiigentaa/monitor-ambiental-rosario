@@ -111,9 +111,13 @@ async function obtenerAlturaRio({ forzarActualizacion = false } = {}) {
     cache = { timestamp: Date.now(), data };
     return data;
   } catch (err) {
+    // err.cause suele traer el codigo real de bajo nivel (ECONNRESET,
+    // ENOTFOUND, etc.) cuando fetch falla a nivel de conexion/TLS, util para
+    // diferenciar "el sitio de Prefectura esta caido" de otros problemas.
+    const detalle = err.cause?.code ? ` (${err.cause.code})` : "";
     const data = {
       estado: "datos_no_disponibles",
-      mensaje: `No se pudo obtener la altura del río: ${err.message}`,
+      mensaje: `No se pudo obtener la altura del río: ${err.message}${detalle}`,
       actualizado: new Date().toISOString()
     };
     cache = { timestamp: Date.now(), data };

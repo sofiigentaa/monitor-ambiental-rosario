@@ -190,7 +190,10 @@ async function obtenerPronosticoViento() {
 
   const res = await fetch(url);
   if (!res.ok) {
-    throw new Error("No se pudo obtener el pronostico de viento (Open-Meteo)");
+    const cuerpo = await res.text().catch(() => "");
+    throw new Error(
+      `No se pudo obtener el pronostico de viento (Open-Meteo respondio ${res.status}: ${cuerpo.slice(0, 200)})`
+    );
   }
   const data = await res.json();
   const horas = data.hourly.time;
@@ -352,9 +355,12 @@ async function obtenerAlertaHumo({ forzarActualizacion = false } = {}) {
     cache = { timestamp: Date.now(), data };
     return data;
   } catch (err) {
+    // err.cause suele traer el codigo real de bajo nivel (ECONNRESET,
+    // ENOTFOUND, etc.) cuando fetch falla a nivel de conexion/TLS.
+    const detalle = err.cause?.code ? ` (${err.cause.code})` : "";
     const data = {
       estado: "datos_no_disponibles",
-      mensaje: `No se pudo calcular la alerta de humo: ${err.message}`,
+      mensaje: `No se pudo calcular la alerta de humo: ${err.message}${detalle}`,
       actualizado: new Date().toISOString()
     };
     cache = { timestamp: Date.now(), data };

@@ -1,5 +1,13 @@
 require("dotenv").config();
 
+// Algunos proveedores de hosting (Render incluido) asignan IPv6 a los
+// contenedores pero con ruteo de salida roto o muy lento hacia ciertos
+// destinos externos. Node intenta conectar por IPv6 primero por defecto, y
+// eso se manifiesta como "fetch failed" al llamar APIs externas (Open-Meteo,
+// Prefectura Naval, NASA FIRMS) que funcionan perfecto en local. Forzar
+// IPv4 primero evita ese problema sin afectar nada mas.
+require("dns").setDefaultResultOrder("ipv4first");
+
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
